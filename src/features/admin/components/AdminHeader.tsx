@@ -1,8 +1,23 @@
-import { Bell, Search } from "lucide-react";
+"use client";
+
+import { Bell, Search, Calendar } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import { useEffect, useState } from "react";
 
 export function AdminHeader() {
+    const [currentDate, setCurrentDate] = useState("");
+
+    useEffect(() => {
+        const now = new Date();
+        const formattedDate = new Intl.DateTimeFormat("vi-VN", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+        }).format(now);
+        setCurrentDate(formattedDate);
+    }, []);
+
     return (
         <header className="flex h-16 items-center gap-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-6 sticky top-0 z-10">
             <div className="flex flex-1 gap-4 md:gap-8">
@@ -22,6 +37,13 @@ export function AdminHeader() {
                     <Bell className="h-5 w-5" />
                     <span className="sr-only">Notifications</span>
                 </Button>
+
+                <div className="h-6 w-px bg-neutral-200 dark:bg-neutral-800 mx-2" />
+
+                <div className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
+                    <Calendar className="h-4 w-4" />
+                    <span>{currentDate}</span>
+                </div>
             </div>
         </header>
     );
