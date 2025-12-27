@@ -3,6 +3,7 @@
 import { Bell, Search, Calendar } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import { SidebarTrigger } from "@/shared/components/ui/sidebar";
 import { useEffect, useState } from "react";
 
 export function AdminHeader() {
@@ -19,7 +20,11 @@ export function AdminHeader() {
     }, []);
 
     return (
-        <header className="flex h-16 items-center gap-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-6 sticky top-0 z-10">
+        <header className="flex h-16 items-center gap-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-6 sticky top-0 z-10 w-full transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+            <div className="flex items-center gap-2 px-4">
+                <SidebarTrigger className="-ml-1" />
+            </div>
+
             <div className="flex flex-1 gap-4 md:gap-8">
                 <form className="ml-auto flex-1 md:grow-0">
                     <div className="relative">
