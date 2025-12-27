@@ -1,4 +1,4 @@
-import { AdminLayout } from "@/features/admin/components/AdminLayout";
+import { AdminLayout } from "@/features/admin/components/admin-layout";
 
 export default function Layout({
     children,
