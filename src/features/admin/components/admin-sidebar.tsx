@@ -12,10 +12,23 @@ import {
     ChevronRight,
 
     LogOut,
-    LayoutDashboard
+    LayoutDashboard,
+    ChevronsUpDown,
+    LogIn,
+    UserPlus,
+    Home
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
 import { cn } from "@/shared/utils";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuGroup,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/shared/components/ui/dropdown-menu";
 import {
     Sidebar,
     SidebarContent,
@@ -149,7 +162,6 @@ export function AdminSidebar() {
                                 );
                             }
 
-                            // If it's a single item
                             return (
                                 <SidebarMenuItem key={group.title}>
                                     <SidebarMenuButton
@@ -169,26 +181,67 @@ export function AdminSidebar() {
                 </SidebarGroup>
             </SidebarContent>
             <SidebarFooter>
-                <div className={cn("flex items-center gap-3 w-full p-2 rounded-xl bg-neutral-100 dark:bg-neutral-800 border border-transparent transition-all", state === "collapsed" && "justify-center p-2 bg-transparent")}>
-                    <Avatar className="h-8 w-8">
-                        <AvatarImage src="/avatars/01.png" alt="@admin" />
-                        <AvatarFallback>AD</AvatarFallback>
-                    </Avatar>
-                    {state === "expanded" && (
-                        <>
-                            <div className="flex flex-col items-start flex-1 min-w-0">
-                                <span className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 truncate w-full text-left">Admin User</span>
-                                <span className="text-xs text-neutral-500 dark:text-neutral-400 truncate w-full text-left">admin@knowhub.com</span>
-                            </div>
-                            <button
-                                className="p-2 rounded-lg hover:bg-white dark:hover:bg-neutral-700 hover:shadow-sm hover:text-red-500 transition-all text-neutral-400"
-                                title="Sign out"
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <SidebarMenuButton
+                                    size="lg"
+                                    className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                                >
+                                    <Avatar className="h-8 w-8 rounded-lg">
+                                        <AvatarImage src="/avatars/01.png" alt="@admin" />
+                                        <AvatarFallback className="rounded-lg">AD</AvatarFallback>
+                                    </Avatar>
+                                    <div className="grid flex-1 text-left text-sm leading-tight">
+                                        <span className="truncate font-semibold">Admin User</span>
+                                        <span className="truncate text-xs">admin@knowhub.com</span>
+                                    </div>
+                                    <ChevronsUpDown className="ml-auto size-4" />
+                                </SidebarMenuButton>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+                                side="bottom"
+                                align="end"
+                                sideOffset={4}
                             >
-                                <LogOut className="w-5 h-5" />
-                            </button>
-                        </>
-                    )}
-                </div>
+                                <DropdownMenuLabel className="p-0 font-normal">
+                                    <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                                        <Avatar className="h-8 w-8 rounded-lg">
+                                            <AvatarImage src="/avatars/01.png" alt="@admin" />
+                                            <AvatarFallback className="rounded-lg">AD</AvatarFallback>
+                                        </Avatar>
+                                        <div className="grid flex-1 text-left text-sm leading-tight">
+                                            <span className="truncate font-semibold">Admin User</span>
+                                            <span className="truncate text-xs">admin@knowhub.com</span>
+                                        </div>
+                                    </div>
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuGroup>
+                                    <DropdownMenuItem asChild>
+                                        <Link href="/login" className="cursor-pointer">
+                                            <LogIn className="mr-2 h-4 w-4" />
+                                            <span>Đăng nhập</span>
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                        <Link href="/" className="cursor-pointer">
+                                            <Home className="mr-2 h-4 w-4" />
+                                            <span>Trang chủ</span>
+                                        </Link>
+                                    </DropdownMenuItem>
+                                </DropdownMenuGroup>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/10 cursor-pointer">
+                                    <LogOut className="mr-2 h-4 w-4" />
+                                    <span>Đăng xuất</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </SidebarMenuItem>
+                </SidebarMenu>
             </SidebarFooter>
         </Sidebar>
     );
