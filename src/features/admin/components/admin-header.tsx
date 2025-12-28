@@ -34,13 +34,13 @@ export function AdminHeader() {
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-neutral-500 dark:text-neutral-400" />
                         <Input
                             type="search"
-                            placeholder="Search..."
+                            placeholder="Nhập chuỗi tìm kiếm ..."
                             className="w-full rounded-lg bg-neutral-100 dark:bg-neutral-800 pl-8 md:w-[200px] lg:w-[320px]"
                         />
                     </div>
                 </form>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 ml-5">
                 <Button variant="ghost" size="icon" className="text-neutral-500">
                     <Bell className="h-5 w-5" />
                     <span className="sr-only">Notifications</span>

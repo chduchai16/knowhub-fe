@@ -126,7 +126,7 @@ export function AdminSidebar() {
             </SidebarHeader>
             <SidebarContent>
                 <SidebarGroup>
-                    <SidebarGroupLabel>Platform</SidebarGroupLabel>
+                    <SidebarGroupLabel>Tổng quan</SidebarGroupLabel>
                     <SidebarMenu>
                         {menuGroups.map((group) => {
                             // If it's a group with sub-items
