@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -25,8 +25,10 @@ import {
 
 import { loginSchema, LoginSchema } from "../schemas/login-schema";
 import { AuthService } from "../services/auth.service";
+import { useRouter } from "next/navigation";
 
 export default function LoginForm() {
+  const router = useRouter() ;
   const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<LoginSchema>({
@@ -34,13 +36,16 @@ export default function LoginForm() {
     defaultValues: {
       username: "",
       password: "",
-      remember: false,
+      rememberMe: false,
     },
     mode: "onBlur",
   });
 
-  const onSubmit = (values: LoginSchema) => {
-    AuthService.login(values);
+  const onSubmit = async (values: LoginSchema) => {
+    const token = await AuthService.login(values);
+    if(token) {
+      router.push("/");
+    }
   };
 
   return (
@@ -120,7 +125,7 @@ export default function LoginForm() {
           {/* Remember */}
           <FormField
             control={form.control}
-            name="remember"
+            name="rememberMe"
             render={({ field }) => (
               <div className="flex items-center justify-between mt-2 ml-1">
                 <label className="inline-flex items-center gap-3">

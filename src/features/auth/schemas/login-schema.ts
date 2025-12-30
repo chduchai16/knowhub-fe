@@ -7,7 +7,7 @@ export const loginSchema = z.object({
   password: z
     .string()
     .min(8, "Mật khẩu phải có ít nhất 8 ký tự"),
-  remember: z.boolean().optional(),
+  rememberMe: z.boolean().optional(),
 });
 
 export type LoginSchema = z.infer<typeof loginSchema>;

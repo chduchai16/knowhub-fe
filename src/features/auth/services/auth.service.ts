@@ -7,7 +7,7 @@ export class AuthService {
   static async login(loginRequest: LoginSchema) {
     try {
       const response = await api.post("/auth/login", loginRequest);
-      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("token", response.data);
       return response.data;
     } catch (error) {
       throw error;
@@ -17,10 +17,8 @@ export class AuthService {
   static async register(registerRequest: RegisterSchema) {
     try {
       const response = await api.post("/auth/register", registerRequest);
-      console.log("Register success", response.data);
       return response.data; 
     } catch (error: any) {
-      console.error("Register failed", error.response?.data || error.message);
       throw error; 
     }
   }
