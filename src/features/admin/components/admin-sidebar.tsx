@@ -52,7 +52,7 @@ export function AdminSidebar() {
 
     const menuGroups = [
         {
-            title: "Dashboard",
+            title: "Tổng quan",
             icon: LayoutDashboard,
             href: "/admin/dashboard",
         },
@@ -92,6 +92,11 @@ export function AdminSidebar() {
                     icon: Tag,
                 },
             ],
+        },
+        {
+            title: "Quản lý tố cáo",
+            icon: FileText,
+            href: "/admin/reports",
         },
         {
             title: "Quản lý hoạt động",
@@ -147,7 +152,7 @@ export function AdminSidebar() {
                                                         <SidebarMenuSubItem key={item.href}>
                                                             <SidebarMenuSubButton
                                                                 asChild
-                                                                isActive={pathname === item.href}
+                                                                isActive={pathname.startsWith(item.href)}
                                                             >
                                                                 <Link href={item.href}>
                                                                     <span>{item.title}</span>
@@ -166,7 +171,7 @@ export function AdminSidebar() {
                                 <SidebarMenuItem key={group.title}>
                                     <SidebarMenuButton
                                         asChild
-                                        isActive={pathname === group.href}
+                                        isActive={pathname.startsWith(group.href!)}
                                         tooltip={group.title}
                                     >
                                         <Link href={group.href!}>

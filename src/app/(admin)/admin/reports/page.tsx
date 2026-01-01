@@ -1,3 +1,5 @@
+import { ReportList } from "@/features/admin/pages/report-management/report-list";
+
 export default function Page() {
-    return <div>Reports Management Placeholder</div>;
+    return <ReportList />;
 }

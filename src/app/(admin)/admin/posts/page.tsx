@@ -1,5 +1,5 @@
-import { PostManagement } from "@/features/admin/pages/post-management";
+import { PostList } from "@/features/admin/pages/post-management/post/post-list";
 
 export default function Page() {
-    return <PostManagement />;
+    return <PostList />;
 }

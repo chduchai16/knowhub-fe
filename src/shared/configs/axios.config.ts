@@ -1,6 +1,7 @@
 import { backendUrl } from "@/shared/constants/environment";
 import axios, { AxiosError } from "axios";
-import { toast } from "sonner"; 
+import { toast } from "sonner";
+import Cookies from "js-cookie";
 
 export const api = axios.create({
   baseURL: backendUrl,
@@ -11,7 +12,7 @@ export const api = axios.create({
 
 // Thêm token vào request nếu có
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+  const token = Cookies.get("token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -28,7 +29,7 @@ api.interceptors.response.use(
 
       if (status === 401) {
         // Ví dụ: redirect sang login
-        // window.location.href = "/login";
+        Cookies.remove("token");
       }
     } else if (error.request) {
       // Khi không nhận được response

@@ -1,5 +1,5 @@
-import { TagsManagement } from "@/features/admin/pages/tags-management";
+import { TagList } from "@/features/admin/pages/post-management/tag/tag-list";
 
 export default function Page() {
-    return <TagsManagement />;
+    return <TagList />;
 }

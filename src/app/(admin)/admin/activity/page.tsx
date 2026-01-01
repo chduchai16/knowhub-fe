@@ -1,5 +1,5 @@
-import { ActivityManagement } from "@/features/admin/pages/activity-management";
+import { ActivityList } from "@/features/admin/pages/activity-management/activity-list";
 
 export default function Page() {
-    return <ActivityManagement />;
+    return <ActivityList />;
 }

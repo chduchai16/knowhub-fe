@@ -1,13 +1,12 @@
 "use client"
 
 import { Button } from "@/shared/components/ui/button";
-import { Plus } from "lucide-react";
+import { Eye, Plus } from "lucide-react";
 import { Input } from "@/shared/components/ui/input";
 import { Search } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
-import { UserService } from "../services/user-service";
 import { useEffect, useState } from "react";
-import { User } from "../models/user";
+import { useRouter } from "next/navigation";
 import {
     Table,
     TableBody,
@@ -28,7 +27,7 @@ import {
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
 import { Badge } from "@/shared/components/ui/badge";
-import { MoreHorizontal, Edit, Trash2, ShieldAlert } from "lucide-react";
+import { MoreHorizontal, Edit, Trash2, ShieldAlert, X } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -39,24 +38,41 @@ import {
 } from "@/shared/components/ui/dropdown-menu";
 import { PageResponse } from "@/shared/models/page-response";
 import { cn } from "@/shared/utils";
+import { useDebounce } from "@/shared/hooks/use-debounce";
+import { User } from "@/features/admin/models/user";
+import { UserService } from "@/features/admin/services/user-service";
 
-export function UserManagement() {
+export function UserList() {
     const [users, setUsers] = useState<User[]>([]);
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(10);
     const [totalPages, setTotalPages] = useState(1);
     const [totalElements, setTotalElements] = useState(0);
-    const [search, setSearch] = useState("");
-    const [role, setRole] = useState("");
-    const [status, setStatus] = useState("");
+    const [keyword, setKeyword] = useState<string>("");
+    const [roleId, setRoleId] = useState<number | undefined>(undefined);
+    const [userStatus, setUserStatus] = useState<string | undefined>(undefined);
     const [loading, setLoading] = useState(false);
+    const router = useRouter();
+
+    // Debounce keyword để tránh gọi API liên tục khi người dùng đang gõ
+    const debouncedKeyword = useDebounce(keyword, 500);
+
+    // Kiểm tra xem có filter nào đang được áp dụng không
+    const hasActiveFilters = keyword !== "" || roleId !== undefined || (userStatus !== undefined && userStatus !== "");
+
+    // Xóa tất cả bộ lọc
+    const clearFilters = () => {
+        setKeyword("");
+        setRoleId(undefined);
+        setUserStatus(undefined);
+        setPage(1);
+    };
 
     useEffect(() => {
         const fetchUsers = async () => {
             setLoading(true);
             try {
-                const response: PageResponse<User> = await UserService.getPagedUsers(page, limit, search, role, status);
-                console.log('response : ', response);
+                const response: PageResponse<User> = await UserService.getPagedUsers({ page, limit, keyword: debouncedKeyword, roleId, userStatus });
                 setUsers(response.content);
                 setTotalPages(response.info.totalPages);
                 setTotalElements(response.info.totalElements);
@@ -67,7 +83,7 @@ export function UserManagement() {
             }
         };
         fetchUsers();
-    }, [page, limit, search, role, status]);
+    }, [page, limit, debouncedKeyword, roleId, userStatus]);
 
     const getPageRange = () => {
         const delta = 2;
@@ -110,6 +126,11 @@ export function UserManagement() {
         return colors[userId % colors.length];
     };
 
+    // Điều hướng đến trang chi tiết user
+    const handleViewUser = (userId: number) => {
+        router.push(`/admin/users/${userId}`);
+    };
+
     return (
         <div>
             {/* header */}
@@ -128,40 +149,52 @@ export function UserManagement() {
                     <Input
                         type="search"
                         placeholder="Tìm kiếm theo tên tài khoản, email, họ và tên"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        value={keyword}
+                        onChange={(e) => setKeyword(e.target.value)}
                         className="w-full rounded-lg bg-neutral-100 pl-8"
                     />
                 </div>
 
                 <div className="relative w-full sm:w-[180px]">
-                    <Select value={role} onValueChange={setRole}>
+                    <Select value={roleId?.toString()} onValueChange={(value) => setRoleId(Number(value))}>
                         <SelectTrigger className="w-full rounded-lg bg-neutral-100">
                             <SelectValue placeholder="Chọn vai trò" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">Tất cả vai trò</SelectItem>
-                            <SelectItem value="ADMIN">Quản trị viên</SelectItem>
-                            <SelectItem value="USER">Người dùng</SelectItem>
+                            <SelectItem value="1">Quản trị viên</SelectItem>
+                            <SelectItem value="2">Người dùng</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
 
-                <Button variant={status === "" ? "default" : "outline"} className={status === "" ? "bg-blue-500 text-white hover:bg-blue-600" : ""} size="sm" onClick={() => setStatus("")}>
+                <Button variant={userStatus === "" ? "default" : "outline"} className={userStatus === "" ? "bg-blue-500 text-white hover:bg-blue-600" : ""} size="sm" onClick={() => setUserStatus("")}>
                     Tất cả
                 </Button>
-                <Button variant={status === "ACTIVE" ? "default" : "outline"} className={status === "ACTIVE" ? "bg-green-500 text-white hover:bg-green-600" : ""} size="sm" onClick={() => setStatus("ACTIVE")} >
+                <Button variant={userStatus === "ACTIVE" ? "default" : "outline"} className={userStatus === "ACTIVE" ? "bg-green-500 text-white hover:bg-green-600" : ""} size="sm" onClick={() => setUserStatus("ACTIVE")} >
                     <div className="w-2 h-2 bg-green-500 rounded-full mr-2" /> Hoạt động
                 </Button>
-                <Button variant={status === "INACTIVE" ? "default" : "outline"} className={status === "INACTIVE" ? "bg-red-500 text-white hover:bg-red-600" : ""} size="sm" onClick={() => setStatus("INACTIVE")} >
+                <Button variant={userStatus === "INACTIVE" ? "default" : "outline"} className={userStatus === "INACTIVE" ? "bg-red-500 text-white hover:bg-red-600" : ""} size="sm" onClick={() => setUserStatus("INACTIVE")} >
                     <div className="w-2 h-2 bg-red-500 rounded-full mr-2" /> Không hoạt động
                 </Button>
-                <Button variant={status === "SUSPENDED" ? "default" : "outline"} className={status === "SUSPENDED" ? "bg-yellow-500 text-white hover:bg-yellow-600" : ""} size="sm" onClick={() => setStatus("SUSPENDED")} >
+                <Button variant={userStatus === "SUSPENDED" ? "default" : "outline"} className={userStatus === "SUSPENDED" ? "bg-yellow-500 text-white hover:bg-yellow-600" : ""} size="sm" onClick={() => setUserStatus("SUSPENDED")} >
                     <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2" /> Khóa tạm thời
                 </Button>
-                <Button variant={status === "DELETED" ? "default" : "outline"} className={status === "DELETED" ? "bg-gray-500 text-white hover:bg-gray-600" : ""} size="sm" onClick={() => setStatus("DELETED")} >
+                <Button variant={userStatus === "DELETED" ? "default" : "outline"} className={userStatus === "DELETED" ? "bg-gray-500 text-white hover:bg-gray-600" : ""} size="sm" onClick={() => setUserStatus("DELETED")} >
                     <div className="w-2 h-2 bg-gray-500 rounded-full mr-2" /> Khóa
                 </Button>
+
+                {/* Nút xóa bộ lọc */}
+                {hasActiveFilters && (
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={clearFilters}
+                        className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                    >
+                        <X className="h-4 w-4 mr-1" />
+                        Xóa bộ lọc
+                    </Button>
+                )}
             </div>
 
             {/* main content */}
@@ -246,11 +279,11 @@ export function UserManagement() {
                                             <DropdownMenuContent align="end" className="w-[160px]">
                                                 <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
                                                 <DropdownMenuSeparator />
-                                                <DropdownMenuItem className="cursor-pointer">
-                                                    <Edit className="mr-2 h-4 w-4" />
+                                                <DropdownMenuItem className="cursor-pointer" onClick={() => handleViewUser(user.id)}>
+                                                    <Eye className="mr-2 h-4 w-4" />
                                                     <span>Xem chi tiết</span>
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem className="cursor-pointer">
+                                                <DropdownMenuItem className="cursor-pointer" onClick={() => handleViewUser(user.id)}>
                                                     <Edit className="mr-2 h-4 w-4" />
                                                     <span>Chỉnh sửa</span>
                                                 </DropdownMenuItem>
