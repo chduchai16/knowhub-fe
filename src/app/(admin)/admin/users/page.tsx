@@ -1,5 +1,5 @@
-import { UserManagement } from "@/features/admin/pages/user-management";
+import { UserList } from "@/features/admin/pages/user-management/user/user-list";
 
 export default function Page() {
-    return <UserManagement />;
+    return <UserList />;
 }

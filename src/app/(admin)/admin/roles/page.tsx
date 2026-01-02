@@ -1,5 +1,5 @@
-import { RolesManagement } from "@/features/admin/pages/roles-management";
+import { RoleList } from "@/features/admin/pages/user-management/role/roles-list";
 
 export default function Page() {
-    return <RolesManagement />;
+    return <RoleList />;
 }

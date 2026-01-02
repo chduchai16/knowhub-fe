@@ -1,5 +1,5 @@
-import { PermissionsManagement } from "@/features/admin/pages/permissions-management";
+import { PermissionList } from "@/features/admin/pages/user-management/permission/permissions-list";
 
 export default function Page() {
-    return <PermissionsManagement />;
+    return <PermissionList />;
 }
