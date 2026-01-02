@@ -18,11 +18,13 @@ import { Textarea } from "@/shared/components/ui/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
-import { ArrowLeft, CalendarIcon, Camera, LogOut, Save, SendHorizonal, Shield } from "lucide-react";
+import { ArrowLeft, CalendarIcon, Camera, CircleX, LogOut, Save, SendHorizonal, Shield, SquarePen } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { UserAction } from "@/shared/models/user-action";
 import { toast } from "sonner";
+import dayjs from "dayjs";
+import { useRouter } from "next/navigation";
 
 interface UserDetailProps {
   userId: string;
@@ -32,6 +34,7 @@ export function UserDetail({ userId }: UserDetailProps) {
   const [user, setUser] = useState<User | null>(null);
   const [cacheUser , setCacheUser] = useState<User | null>(null);
   const [userAction , setUserAction] = useState<UserAction>(UserAction.DETAILT);  
+  const router = useRouter();
 
   // Khởi tạo form với default values rỗng
   const userForm = useForm<UserSchema>({
@@ -59,6 +62,10 @@ export function UserDetail({ userId }: UserDetailProps) {
 
   // Fetch user data
   useEffect(() => {
+    const action = sessionStorage.getItem("userAction");
+    if(action){
+      setUserAction(parseInt(action));
+    }
     const fetchUser = async () => {
       const user = await UserService.getUserById(userId);
       setUser(user);
@@ -84,16 +91,30 @@ export function UserDetail({ userId }: UserDetailProps) {
 
   // gửi dữ liệu 
   const onSubmit = async (values: UserSchema) => {
-    console.log("Form values:", values);
-    const user = await UserService.updateUser(values);
-    setUser(user);
-    setCacheUser(user);
+    // Format dateOfBirth to YYYY-MM-DD before sending
+    const formattedValues = {
+      ...values,
+      dateOfBirth: values.dateOfBirth ? dayjs(values.dateOfBirth).format("YYYY-MM-DD") : null,
+    };
+    
+    await UserService.updateUser(formattedValues);
+    
+    const updatedUser = await UserService.getUserById(userId);
+    setUser(updatedUser);
+    setCacheUser(updatedUser);
+    sessionStorage.removeItem("userAction");
     changeAction(UserAction.DETAILT);
+    toast.success("Cập nhật người dùng thành công!");
   };
 
   const onError = (errors: any) => {
+    console.log(errors);
     toast.error("Đã xảy ra lỗi khi cập nhật người dùng");
   };
+
+  const redirectToList = () => {
+    router.push("/admin/users");
+  }
 
   // Helper function để lấy config cho status badge
   const getStatusBadge = (status: string) => {
@@ -127,11 +148,21 @@ export function UserDetail({ userId }: UserDetailProps) {
       {/* header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Chi tiết người dùng #{userId}
-          </h1>
+          {userAction === UserAction.DETAILT ? (
+            <h1 className="text-2xl font-bold tracking-tight">
+              Chi tiết người dùng
+            </h1>
+          ) : (
+            <h1 className="text-2xl font-bold tracking-tight">
+              Cập nhật người dùng
+            </h1>
+          )}
           <p className="text-sm text-muted-foreground">
-            Xem và cập nhật thông tin cá nhân, quyền hạn và trạng thái.
+            {userAction === UserAction.DETAILT ? (
+              "Xem và cập nhật thông tin cá nhân, vai trò và trạng thái."
+            ) : (
+              "Cập nhật thông tin cá nhân, vai trò và trạng thái."
+            )}
           </p>
         </div>
         <div>
@@ -139,6 +170,7 @@ export function UserDetail({ userId }: UserDetailProps) {
             variant="outline"
             size="sm"
             className="bg-blue-500 text-white hover:bg-blue-600 hover:text-white"
+            onClick={redirectToList}
           >
             <ArrowLeft className="h-4 w-4" />
             Quay lại
@@ -287,7 +319,7 @@ export function UserDetail({ userId }: UserDetailProps) {
                     <FormItem>
                       <FormLabel>Tên đăng nhập</FormLabel>
                       <FormControl>
-                        <Input disabled={userAction !== UserAction.UPDATE} placeholder="Tên đăng nhập" {...field} value={field.value || ''}/>
+                        <Input disabled placeholder="Tên đăng nhập" {...field} value={field.value || ''}/>
                       </FormControl>
                       <FormMessage/>
                     </FormItem>
@@ -300,7 +332,7 @@ export function UserDetail({ userId }: UserDetailProps) {
                     <FormItem className="col-span-2">
                       <FormLabel>Địa chỉ email</FormLabel>
                       <FormControl>
-                        <Input disabled={userAction !== UserAction.UPDATE} placeholder="Địa chỉ email" {...field} value={field.value || ''}/>
+                        <Input disabled placeholder="Địa chỉ email" {...field} value={field.value || ''}/>
                       </FormControl>
                       <FormMessage/>
                     </FormItem>
@@ -315,7 +347,7 @@ export function UserDetail({ userId }: UserDetailProps) {
                        <FormControl>
                         <Select
                           disabled={userAction !== UserAction.UPDATE}
-                          value={String(field.value)}
+                          value={field.value || ''}
                           onValueChange={field.onChange}
                         >
                           <SelectTrigger className="w-full">
@@ -355,7 +387,9 @@ export function UserDetail({ userId }: UserDetailProps) {
                           <Calendar
                             mode="single"
                             selected={field.value ? new Date(field.value) : undefined}
-                            onSelect={(date) => field.onChange(date?.toISOString())}
+                            onSelect={(date) =>
+                              field.onChange(date ? dayjs(date).format("YYYY-MM-DD") : "")
+                            }
                             disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
                             initialFocus
                             captionLayout="dropdown"
@@ -377,7 +411,7 @@ export function UserDetail({ userId }: UserDetailProps) {
                        <FormControl>
                         <Select
                           disabled={userAction !== UserAction.UPDATE}
-                          value={String(field.value)}
+                          value={field.value ? String(field.value) : ''}
                           onValueChange={(value) => field.onChange(Number(value))}
                         >
                           <SelectTrigger className="w-full">
@@ -402,7 +436,7 @@ export function UserDetail({ userId }: UserDetailProps) {
                        <FormControl>
                         <Select
                           disabled={userAction !== UserAction.UPDATE}
-                          value={String(field.value)}
+                          value={field.value || ''}
                           onValueChange={field.onChange}
                         >
                           <SelectTrigger className="w-full">
@@ -446,6 +480,7 @@ export function UserDetail({ userId }: UserDetailProps) {
                       className="bg-orange-400 hover:bg-orange-600 text-white" 
                       onClick={() => changeAction(UserAction.UPDATE)}
                     >
+                      <SquarePen className="h-4 w-4"/>
                       Chỉnh sửa
                     </Button>
                   : 
@@ -457,6 +492,7 @@ export function UserDetail({ userId }: UserDetailProps) {
                         className="hover:bg-red-500 hover:text-white" 
                         onClick={() => changeAction(UserAction.DETAILT)}
                       >
+                        <CircleX className="h-4 w-4"/>
                         Hủy bỏ
                       </Button>
                       <Button 
@@ -465,7 +501,7 @@ export function UserDetail({ userId }: UserDetailProps) {
                         className="bg-blue-500 hover:bg-blue-600 text-white" 
                         size="sm"
                       >
-                        <Save />
+                        <Save className="h-4 w-4"/>
                         Lưu thay đổi
                       </Button>
                     </>

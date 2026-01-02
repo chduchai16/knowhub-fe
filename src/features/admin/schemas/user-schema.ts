@@ -8,7 +8,7 @@ export const userSchema = z.object({
     bio: z.string().nullable().optional(),
     avatarUrl: z.string().nullable().optional(),
     roleId: z.number(),
-    roleName: z.string(),
+    roleName: z.string().nullable().optional(),
     followerQuantity: z.number().nullable().optional(),
     followingQuantity: z.number().nullable().optional(),
     postQuantity: z.number().nullable().optional(),

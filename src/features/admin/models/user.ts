@@ -7,7 +7,7 @@ export interface User {
     avatarUrl?: string | null,
     status: string,
     roleId: number,
-    roleName: string
+    roleName?: string | null
     followerQuantity?: number | null,
     followingQuantity?: number | null,
     postQuantity?: number | null,

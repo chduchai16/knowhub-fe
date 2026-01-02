@@ -41,6 +41,7 @@ import { cn } from "@/shared/utils";
 import { useDebounce } from "@/shared/hooks/use-debounce";
 import { User } from "@/features/admin/models/user";
 import { UserService } from "@/features/admin/services/user-service";
+import { UserAction } from "@/shared/models/user-action";
 
 export function UserList() {
     const [users, setUsers] = useState<User[]>([]);
@@ -127,7 +128,8 @@ export function UserList() {
     };
 
     // Điều hướng đến trang chi tiết user
-    const handleViewUser = (userId: number) => {
+    const handleViewUser = (userId: number , userAction: UserAction) => {
+        sessionStorage.setItem("userAction", userAction.toString());
         router.push(`/admin/users/${userId}`);
     };
 
@@ -234,7 +236,7 @@ export function UserList() {
                                     <TableCell>
                                         <div className="flex items-center gap-3">
                                             <Avatar className="h-8 w-8">
-                                                <AvatarImage src={user.avatarUrl} alt={user.username} />
+                                                <AvatarImage src={user.avatarUrl || undefined} alt={user.username} />
                                                 <AvatarFallback className={cn(getAvatarColor(user.id), "text-white font-medium")}>
                                                     {user.username.substring(0, 2).toUpperCase()}
                                                 </AvatarFallback>
@@ -279,11 +281,11 @@ export function UserList() {
                                             <DropdownMenuContent align="end" className="w-[160px]">
                                                 <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
                                                 <DropdownMenuSeparator />
-                                                <DropdownMenuItem className="cursor-pointer" onClick={() => handleViewUser(user.id)}>
+                                                <DropdownMenuItem className="cursor-pointer" onClick={() => handleViewUser(user.id , UserAction.DETAILT)}>
                                                     <Eye className="mr-2 h-4 w-4" />
                                                     <span>Xem chi tiết</span>
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem className="cursor-pointer" onClick={() => handleViewUser(user.id)}>
+                                                <DropdownMenuItem className="cursor-pointer" onClick={() => handleViewUser(user.id , UserAction.UPDATE)}>
                                                     <Edit className="mr-2 h-4 w-4" />
                                                     <span>Chỉnh sửa</span>
                                                 </DropdownMenuItem>
