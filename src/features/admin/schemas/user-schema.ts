@@ -1,9 +1,9 @@
 import { z } from "zod";
 
 export const userSchema = z.object({
-    id: z.number(),
-    username: z.string(),
-    email: z.string().nullable().optional(),
+    id: z.number().optional(),
+    username: z.string().min(3, "Tên đăng nhập phải có ít nhất 3 ký tự"),
+    email: z.string().email("Email không hợp lệ").nullable().optional(),
     fullName: z.string().nullable().optional(),
     bio: z.string().nullable().optional(),
     avatarUrl: z.string().nullable().optional(),
@@ -17,5 +17,16 @@ export const userSchema = z.object({
     status: z.string(),
     createdAt: z.string().nullable().optional(),
     updatedAt: z.string().nullable().optional(),
-})
-export type UserSchema = z.infer<typeof userSchema>
+    password: z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự").optional(),
+    confirmPassword: z.string().optional(),
+}).refine((data) => {
+    if (data.password && data.confirmPassword) {
+        return data.password === data.confirmPassword;
+    }
+    return true;
+}, {
+    message: "Mật khẩu xác nhận không khớp",
+    path: ["confirmPassword"],
+});
+
+export type UserSchema = z.infer<typeof userSchema>;

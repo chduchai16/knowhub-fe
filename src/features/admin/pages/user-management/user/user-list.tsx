@@ -5,7 +5,7 @@ import { Eye, Plus } from "lucide-react";
 import { Input } from "@/shared/components/ui/input";
 import { Search } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
     Table,
@@ -42,6 +42,17 @@ import { useDebounce } from "@/shared/hooks/use-debounce";
 import { User } from "@/features/admin/models/user";
 import { UserService } from "@/features/admin/services/user-service";
 import { UserAction } from "@/shared/models/user-action";
+import { toast } from "sonner";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/shared/components/ui/alert-dialog";
 
 export function UserList() {
     const [users, setUsers] = useState<User[]>([]);
@@ -53,10 +64,15 @@ export function UserList() {
     const [roleId, setRoleId] = useState<number | undefined>(undefined);
     const [userStatus, setUserStatus] = useState<string | undefined>(undefined);
     const [loading, setLoading] = useState(false);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [userToDelete, setUserToDelete] = useState<{id: number, name: string} | null>(null);
     const router = useRouter();
 
     // Debounce keyword để tránh gọi API liên tục khi người dùng đang gõ
     const debouncedKeyword = useDebounce(keyword, 500);
+    
+    // Ref để track previous values và tránh duplicate calls
+    const prevFiltersRef = useRef<string | null>(null);
 
     // Kiểm tra xem có filter nào đang được áp dụng không
     const hasActiveFilters = keyword !== "" || roleId !== undefined || (userStatus !== undefined && userStatus !== "");
@@ -70,6 +86,15 @@ export function UserList() {
     };
 
     useEffect(() => {
+        // Tạo key từ tất cả filter values để so sánh
+        const currentFilters = JSON.stringify({ page, limit, debouncedKeyword, roleId, userStatus });
+        
+        // Skip nếu filters không thay đổi
+        if (prevFiltersRef.current === currentFilters) {
+            return;
+        }
+        prevFiltersRef.current = currentFilters;
+        
         const fetchUsers = async () => {
             setLoading(true);
             try {
@@ -133,12 +158,38 @@ export function UserList() {
         router.push(`/admin/users/${userId}`);
     };
 
+    // Mở dialog xóa người dùng
+    const handleOpenDeleteDialog = (userId: number, userName: string) => {
+        setUserToDelete({ id: userId, name: userName });
+        setDeleteDialogOpen(true);
+    };
+
+    // Xóa người dùng
+    const handleDeleteUser = async () => {
+        if (!userToDelete) return;
+        
+        try {
+            await UserService.deleteUser(userToDelete.id.toString());
+            toast.success("Xóa người dùng thành công!");
+            setUsers(prev => prev.filter(u => u.id !== userToDelete.id));
+            setTotalElements(prev => prev - 1);
+        } finally {
+            setDeleteDialogOpen(false);
+            setUserToDelete(null);
+        }
+    };
+
     return (
+        <>
         <div>
             {/* header */}
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold tracking-tight">Quản lý người dùng</h1>
-                <Button size="sm" className="bg-blue-500 hover:bg-blue-600">
+                <Button 
+                    size="sm" 
+                    className="bg-blue-500 hover:bg-blue-600"
+                    onClick={() => router.push("/admin/users/new")}
+                >
                     <Plus className="mr-2 h-4 w-4" />
                     Thêm người dùng
                 </Button>
@@ -289,7 +340,10 @@ export function UserList() {
                                                     <Edit className="mr-2 h-4 w-4" />
                                                     <span>Chỉnh sửa</span>
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem className="cursor-pointer text-red-600 focus:text-red-600">
+                                                <DropdownMenuItem 
+                                                    className="cursor-pointer text-red-600 focus:text-red-600" 
+                                                    onClick={() => handleOpenDeleteDialog(user.id, user.fullName || user.username)}
+                                                >
                                                     <Trash2 className="mr-2 h-4 w-4" />
                                                     <span>Xóa người dùng</span>
                                                 </DropdownMenuItem>
@@ -360,5 +414,28 @@ export function UserList() {
                 )}
             </div>
         </div>
+
+        {/* Hỏi xác nhận xóa */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Xác nhận xóa người dùng</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Bạn có chắc chắn muốn xóa người dùng "{userToDelete?.name}"? 
+                        Hành động này không thể hoàn tác.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Hủy bỏ</AlertDialogCancel>
+                    <AlertDialogAction 
+                        onClick={handleDeleteUser}
+                        className="bg-red-600 hover:bg-red-700"
+                    >
+                        Xóa
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+        </>
     );
 }

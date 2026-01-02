@@ -27,13 +27,15 @@ import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
 
 interface UserDetailProps {
-  userId: string;
+  userId?: string;
 }
 
 export function UserDetail({ userId }: UserDetailProps) {
+  const isCreateMode = !userId;
   const [user, setUser] = useState<User | null>(null);
   const [cacheUser , setCacheUser] = useState<User | null>(null);
-  const [userAction , setUserAction] = useState<UserAction>(UserAction.DETAILT);  
+  const [userAction , setUserAction] = useState<UserAction>(isCreateMode ? UserAction.CREATE : UserAction.DETAILT);  
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
   // Khởi tạo form với default values rỗng
@@ -60,18 +62,19 @@ export function UserDetail({ userId }: UserDetailProps) {
     mode: "onBlur",
   });
 
-  // Fetch user data
   useEffect(() => {
+    if (isCreateMode) return;
+    
     const action = sessionStorage.getItem("userAction");
     if(action){
       setUserAction(parseInt(action));
     }
     const fetchUser = async () => {
-      const user = await UserService.getUserById(userId);
+      const user = await UserService.getUserById(userId!);
       setUser(user);
     };
     fetchUser();
-  }, [userId]);
+  }, [userId, isCreateMode]);
 
   // Reset form khi user data đã load xong
   useEffect(() => {
@@ -91,25 +94,46 @@ export function UserDetail({ userId }: UserDetailProps) {
 
   // gửi dữ liệu 
   const onSubmit = async (values: UserSchema) => {
-    // Format dateOfBirth to YYYY-MM-DD before sending
-    const formattedValues = {
-      ...values,
-      dateOfBirth: values.dateOfBirth ? dayjs(values.dateOfBirth).format("YYYY-MM-DD") : null,
-    };
-    
-    await UserService.updateUser(formattedValues);
-    
-    const updatedUser = await UserService.getUserById(userId);
-    setUser(updatedUser);
-    setCacheUser(updatedUser);
-    sessionStorage.removeItem("userAction");
-    changeAction(UserAction.DETAILT);
-    toast.success("Cập nhật người dùng thành công!");
+    setIsSubmitting(true);
+    try {
+      // format lại ngày sinh
+      const formattedValues = {
+        ...values,
+        dateOfBirth: values.dateOfBirth ? dayjs(values.dateOfBirth).format("YYYY-MM-DD") : null,
+      };
+
+      if (isCreateMode) {
+        // CREATE mode - create new user
+        const { confirmPassword, ...userData } = formattedValues;
+        await UserService.createUser({
+          ...userData,
+          status: userData.status || "ACTIVE",
+        });
+        sessionStorage.removeItem("userAction");
+        toast.success("Tạo người dùng thành công!");
+        router.push("/admin/users");
+      } else {
+        // UPDATE mode - update existing user
+        await UserService.updateUser(formattedValues as User);
+        
+        const updatedUser = await UserService.getUserById(userId!);
+        setUser(updatedUser);
+        setCacheUser(updatedUser);
+        sessionStorage.removeItem("userAction");
+        changeAction(UserAction.DETAILT);
+        toast.success("Cập nhật người dùng thành công!");
+      }
+    } catch (error: any) {
+      const message = error?.response?.data?.message || (isCreateMode ? "Đã xảy ra lỗi khi tạo người dùng" : "Đã xảy ra lỗi khi cập nhật người dùng");
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const onError = (errors: any) => {
     console.log(errors);
-    toast.error("Đã xảy ra lỗi khi cập nhật người dùng");
+    toast.error("Vui lòng kiểm tra lại thông tin");
   };
 
   const redirectToList = () => {
@@ -148,7 +172,11 @@ export function UserDetail({ userId }: UserDetailProps) {
       {/* header */}
       <div className="flex items-center justify-between">
         <div>
-          {userAction === UserAction.DETAILT ? (
+          {userAction === UserAction.CREATE ? (
+            <h1 className="text-2xl font-bold tracking-tight">
+              Thêm người dùng mới
+            </h1>
+          ) : userAction === UserAction.DETAILT ? (
             <h1 className="text-2xl font-bold tracking-tight">
               Chi tiết người dùng
             </h1>
@@ -158,7 +186,9 @@ export function UserDetail({ userId }: UserDetailProps) {
             </h1>
           )}
           <p className="text-sm text-muted-foreground">
-            {userAction === UserAction.DETAILT ? (
+            {userAction === UserAction.CREATE ? (
+              "Điền thông tin để tạo tài khoản người dùng mới."
+            ) : userAction === UserAction.DETAILT ? (
               "Xem và cập nhật thông tin cá nhân, vai trò và trạng thái."
             ) : (
               "Cập nhật thông tin cá nhân, vai trò và trạng thái."
@@ -182,10 +212,9 @@ export function UserDetail({ userId }: UserDetailProps) {
       <div className="flex flex-row items-start gap-6">
         <div className="flex flex-col gap-6 lg:w-1/3">
           <div className="relative rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden">
-            {/*Background */}
+            {/*background */}
             <div className="absolute top-0 left-0 right-0 h-36 bg-blue-500 rounded-t-xl" />
             
-            {/* Content */}
             <div className="relative flex flex-col gap-6 p-6">
               <div className="flex flex-col items-center gap-4 py-12">
                 <div className="relative">
@@ -214,7 +243,9 @@ export function UserDetail({ userId }: UserDetailProps) {
 
                 <div className="text-center">
                   <h2 className="text-lg font-semibold">{user?.fullName}</h2>
-                  <p className="text-sm text-muted-foreground">@{user?.username}</p>
+                  {user?.username && (
+                    <p className="text-sm text-muted-foreground">@{user?.username}</p>
+                  )}
                 </div>
 
                 {user?.status && (
@@ -228,7 +259,6 @@ export function UserDetail({ userId }: UserDetailProps) {
               </div>
             </div>
             
-            {/* Statistics Section */}
             <Separator />
             <div className="relative flex flex-row items-center justify-between gap-4 p-6">
                 <div className="flex flex-col items-center justify-center flex-1">
@@ -248,7 +278,8 @@ export function UserDetail({ userId }: UserDetailProps) {
             </div>
           </div>
 
-          <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6">
+          {userAction !== UserAction.CREATE && (
+            <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6">
             <div className="flex flex-col gap-6">
               <div className="flex items-center justify-between">
                 <h2 className="flex items-center gap-2 text-lg font-semibold">
@@ -282,7 +313,8 @@ export function UserDetail({ userId }: UserDetailProps) {
               </div>
             </div>
           </div>
-        </div>
+        )}
+      </div>
 
         <Card className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 lg:w-2/3">
           <CardHeader className="border-b pb-6 flex flex-row items-center justify-between">
@@ -306,7 +338,7 @@ export function UserDetail({ userId }: UserDetailProps) {
                     <FormItem>
                       <FormLabel>Họ và tên</FormLabel>
                       <FormControl>
-                        <Input disabled={userAction !== UserAction.UPDATE} placeholder="Họ và tên" {...field} value={field.value || ''}/>
+                        <Input disabled={userAction === UserAction.DETAILT} placeholder="Họ và tên" {...field} value={field.value || ''}/>
                       </FormControl>
                       <FormMessage/>
                     </FormItem>
@@ -319,7 +351,7 @@ export function UserDetail({ userId }: UserDetailProps) {
                     <FormItem>
                       <FormLabel>Tên đăng nhập</FormLabel>
                       <FormControl>
-                        <Input disabled placeholder="Tên đăng nhập" {...field} value={field.value || ''}/>
+                        <Input disabled={!isCreateMode} placeholder="Tên đăng nhập" {...field} value={field.value || ''}/>
                       </FormControl>
                       <FormMessage/>
                     </FormItem>
@@ -330,14 +362,46 @@ export function UserDetail({ userId }: UserDetailProps) {
                   name="email"
                   render={({field}) => (
                     <FormItem className="col-span-2">
-                      <FormLabel>Địa chỉ email</FormLabel>
+                      <FormLabel>Địa chỉ email {isCreateMode && <span className="text-red-500">*</span>}</FormLabel>
                       <FormControl>
-                        <Input disabled placeholder="Địa chỉ email" {...field} value={field.value || ''}/>
+                        <Input disabled={!isCreateMode} placeholder="Địa chỉ email" {...field} value={field.value || ''}/>
                       </FormControl>
                       <FormMessage/>
                     </FormItem>
                   )}
                 />
+                
+                {isCreateMode && (
+                  <>
+                    <FormField
+                      control={userForm.control}
+                      name="password"
+                      render={({field}) => (
+                        <FormItem>
+                          <FormLabel>Mật khẩu <span className="text-red-500">*</span></FormLabel>
+                          <FormControl>
+                            <Input type="password" placeholder="••••••" {...field} value={field.value || ''}/>
+                          </FormControl>
+                          <FormMessage/>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={userForm.control}
+                      name="confirmPassword"
+                      render={({field}) => (
+                        <FormItem>
+                          <FormLabel>Xác nhận mật khẩu <span className="text-red-500">*</span></FormLabel>
+                          <FormControl>
+                            <Input type="password" placeholder="••••••" {...field} value={field.value || ''}/>
+                          </FormControl>
+                          <FormMessage/>
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
+                
                 <FormField 
                   control={userForm.control}
                   name="gender"
@@ -346,7 +410,7 @@ export function UserDetail({ userId }: UserDetailProps) {
                       <FormLabel>Giới tính</FormLabel>
                        <FormControl>
                         <Select
-                          disabled={userAction !== UserAction.UPDATE}
+                          disabled={userAction === UserAction.DETAILT}
                           value={field.value || ''}
                           onValueChange={field.onChange}
                         >
@@ -374,7 +438,7 @@ export function UserDetail({ userId }: UserDetailProps) {
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button
-                              disabled={userAction !== UserAction.UPDATE}
+                              disabled={userAction === UserAction.DETAILT}
                               variant="outline"
                               className="w-full justify-start text-left font-normal"
                             >
@@ -410,7 +474,7 @@ export function UserDetail({ userId }: UserDetailProps) {
                       <FormLabel>Vai trò</FormLabel>
                        <FormControl>
                         <Select
-                          disabled={userAction !== UserAction.UPDATE}
+                          disabled={userAction === UserAction.DETAILT}
                           value={field.value ? String(field.value) : ''}
                           onValueChange={(value) => field.onChange(Number(value))}
                         >
@@ -435,7 +499,7 @@ export function UserDetail({ userId }: UserDetailProps) {
                       <FormLabel>Trạng thái</FormLabel>
                        <FormControl>
                         <Select
-                          disabled={userAction !== UserAction.UPDATE}
+                          disabled={userAction === UserAction.DETAILT}
                           value={field.value || ''}
                           onValueChange={field.onChange}
                         >
@@ -461,7 +525,7 @@ export function UserDetail({ userId }: UserDetailProps) {
                     <FormItem className="col-span-2">
                       <FormLabel>Giới thiệu</FormLabel>
                        <FormControl>
-                        <Textarea disabled={userAction !== UserAction.UPDATE} placeholder="Tiểu sử" {...field} value={field.value || ''} className="h-[150px]"/>
+                        <Textarea disabled={userAction === UserAction.DETAILT} placeholder="Tiểu sử" {...field} value={field.value || ''} className="h-[150px]"/>
                       </FormControl>
                       <FormDescription className="text-xs text-right">
                         {field.value?.length || 0}/1000 ký tự
@@ -490,7 +554,7 @@ export function UserDetail({ userId }: UserDetailProps) {
                         variant="ghost" 
                         size="sm" 
                         className="hover:bg-red-500 hover:text-white" 
-                        onClick={() => changeAction(UserAction.DETAILT)}
+                        onClick={() => isCreateMode ? redirectToList() : changeAction(UserAction.DETAILT)}
                       >
                         <CircleX className="h-4 w-4"/>
                         Hủy bỏ
@@ -500,9 +564,13 @@ export function UserDetail({ userId }: UserDetailProps) {
                         variant="default" 
                         className="bg-blue-500 hover:bg-blue-600 text-white" 
                         size="sm"
+                        disabled={isSubmitting}
                       >
                         <Save className="h-4 w-4"/>
-                        Lưu thay đổi
+                        {isCreateMode 
+                          ? (isSubmitting ? "Đang tạo..." : "Tạo người dùng")
+                          : (isSubmitting ? "Đang lưu..." : "Lưu thay đổi")
+                        }
                       </Button>
                     </>
                   }

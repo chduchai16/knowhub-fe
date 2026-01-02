@@ -1,11 +1,10 @@
 import api from "@/shared/configs/axios.config";
 import { PageResponse } from "@/shared/models/page-response";
-import { User } from "../models/user";
-import { GetUsersParams } from "../models/get-user-params";
+import { GetRolesParams } from "../models/get-role-params";
+import { Role } from "../models/role";
 
-export class UserService {
-
-    static async getPagedUsers(params: GetUsersParams = {}): Promise<PageResponse<User>> {
+export class RoleService {
+    static async getPagedRoles(params: GetRolesParams = {}): Promise<PageResponse<Role>> {
         const queryParams: Record<string, string> = {};
         Object.entries(params).forEach(([key, value]) => {
             if (value !== undefined && value !== null && value !== "") {
@@ -18,28 +17,28 @@ export class UserService {
         });
 
         const searchParams = new URLSearchParams(queryParams);
-        const url = `/users${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
+        const url = `/roles${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
 
         const response = await api.get(url);
         return response.data;
     }
 
-    static async getUserById(id: string): Promise<User> {
-        const response = await api.get(`/users/${id}`);
+    static async getRoleById(id: string): Promise<Role> {
+        const response = await api.get(`/roles/${id}`);
         return response.data;
     }
 
-    static async updateUser(user: User): Promise<User> {
-        const response = await api.put(`/users`, user);
+    static async updateRole(role: Role): Promise<Role> {
+        const response = await api.put(`/roles`, role);
         return response.data;
     }
 
-    static async createUser(user: Partial<User>): Promise<User> {
-        const response = await api.post(`/users`, user);
+    static async createRole(role: Partial<Role>): Promise<Role> {
+        const response = await api.post(`/roles`, role);
         return response.data;
     }
 
-    static async deleteUser(id: string): Promise<void> {
-        await api.delete(`/users/${id}`);
+    static async deleteRole(id: string): Promise<void> {
+        await api.delete(`/roles/${id}`);
     }
 }
