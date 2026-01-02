@@ -5,7 +5,7 @@ import { Eye, Plus } from "lucide-react";
 import { Input } from "@/shared/components/ui/input";
 import { Search } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
     Table,
@@ -70,6 +70,9 @@ export function UserList() {
 
     // Debounce keyword để tránh gọi API liên tục khi người dùng đang gõ
     const debouncedKeyword = useDebounce(keyword, 500);
+    
+    // Ref để track previous values và tránh duplicate calls
+    const prevFiltersRef = useRef<string | null>(null);
 
     // Kiểm tra xem có filter nào đang được áp dụng không
     const hasActiveFilters = keyword !== "" || roleId !== undefined || (userStatus !== undefined && userStatus !== "");
@@ -83,6 +86,15 @@ export function UserList() {
     };
 
     useEffect(() => {
+        // Tạo key từ tất cả filter values để so sánh
+        const currentFilters = JSON.stringify({ page, limit, debouncedKeyword, roleId, userStatus });
+        
+        // Skip nếu filters không thay đổi
+        if (prevFiltersRef.current === currentFilters) {
+            return;
+        }
+        prevFiltersRef.current = currentFilters;
+        
         const fetchUsers = async () => {
             setLoading(true);
             try {
@@ -173,7 +185,11 @@ export function UserList() {
             {/* header */}
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold tracking-tight">Quản lý người dùng</h1>
-                <Button size="sm" className="bg-blue-500 hover:bg-blue-600">
+                <Button 
+                    size="sm" 
+                    className="bg-blue-500 hover:bg-blue-600"
+                    onClick={() => router.push("/admin/users/new")}
+                >
                     <Plus className="mr-2 h-4 w-4" />
                     Thêm người dùng
                 </Button>
@@ -399,7 +415,7 @@ export function UserList() {
             </div>
         </div>
 
-        {/* Delete Confirmation Dialog */}
+        {/* Hỏi xác nhận xóa */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
             <AlertDialogContent>
                 <AlertDialogHeader>
