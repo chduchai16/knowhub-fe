@@ -44,7 +44,8 @@ export default function LoginForm() {
   const onSubmit = async (values: LoginSchema) => {
     const token = await AuthService.login(values);
     if(token) {
-      router.push("/");
+      router.push("/feed");
+      router.refresh(); // Trigger middleware để check lại cookie
     }
   };
 
