@@ -441,7 +441,7 @@ export default function EnhancedLandingPage() {
             <div className="col-span-2">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center">
-                  <Globe className="w-6 h-6 text-white" />
+                  <Image src="/assets/knowhub-logo.png" alt="Logo" width={25} height={25} />
                 </div>
                 <span className="text-xl font-semibold text-white">KnowHub</span>
               </div>

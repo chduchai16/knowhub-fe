@@ -2,18 +2,29 @@ import { api } from "@/shared/configs/axios.config";
 import { LoginSchema } from "../schemas/login-schema";
 import { RegisterSchema } from "../schemas/register-schema";
 import Cookies from "js-cookie";
+import { JwtPayload } from "@/shared/models/jwt-payload";
+import { jwtDecode } from "jwt-decode";
+
 
 export class AuthService {
 
   static async login(loginRequest: LoginSchema) {
     try {
       const response = await api.post("/auth/login", loginRequest);
-      Cookies.set("token", response.data, {
-        expires: 1, // 1 ngày
-        secure: true,
-        sameSite: "Strict",
+      const token = response.data;
+
+      const decoded = jwtDecode<JwtPayload>(token);
+
+      const expiresAt = new Date(decoded.exp * 1000);
+
+      Cookies.set("token", token, {
+        expires: expiresAt,   
+        secure: false,      
+        sameSite: "Lax",
+        path: "/",
       });
-      return response.data;
+
+      return token;
     } catch (error) {
       throw error;
     }
