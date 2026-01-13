@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# KnowHub - Frontend
 
-## Getting Started
+KnowHub là một nền tảng kết nối cộng đồng và chia sẻ kiến thức.
 
-First, run the development server:
+> [!NOTE]  
+> Dự án hiện đang trong quá trình phát triển (In Progress).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🚀 Công nghệ sử dụng
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Framework:** [Next.js](https://nextjs.org/)
+- **Styling:** [Tailwind CSS](https://tailwindcss.com/)
+- **UI Components:** [shadcn/ui](https://ui.shadcn.com/)
+- **Icons:** [Lucide React](https://lucide.dev/)
+- **State Management:** React Context API
+- **Authentication:** JWT (Cookie based)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## ✨ Tính năng hiện tại
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Landing Page:** Thiết kế hiện đại theo phong cách Notion.
+- **Authentication:** Đăng nhập và đăng ký người dùng.
+- **Client Layout:** Giao diện sidebar phong cách Instagram.
+- **Tìm kiếm:** Sheet tìm kiếm người dùng real-time.
+- **Bảng tin (Feed):** Hiển thị các bài viết từ cộng đồng.
+- **Trang cá nhân:** Quản lý thông tin và bài viết cá nhân.
+- **Responsive:** Hỗ trợ tốt trên Desktop, Tablet và Mobile.
 
-## Learn More
+## 🛠 Phát triển dự án (Local)
 
-To learn more about Next.js, take a look at the following resources:
+1. **Cài đặt dependencies:**
+   ```bash
+   npm install
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+2. **Cài đặt biến môi trường:**
+   Tạo file `.env.local` và cấu hình các biến cần thiết (nếu có).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+3. **Chạy môi trường development:**
+   ```bash
+   npm run dev
+   ```
+   Ứng dụng sẽ chạy tại: [http://localhost:3000](http://localhost:3000)
 
-## Deploy on Vercel
+## 📁 Cấu trúc thư mục chính
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `src/app`: Định nghĩa các routes và layout (App Router).
+- `src/features`: Chứa các module tính năng (Auth, Client, Admin).
+- `src/shared`: Chứa các components, hooks và services dùng chung.
+- `src/assets`: Hình ảnh và tài nguyên tĩnh.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+© 2026 KnowHub Team.

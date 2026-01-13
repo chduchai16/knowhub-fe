@@ -134,7 +134,6 @@ export function AdminSidebar() {
                     <SidebarGroupLabel>Tổng quan</SidebarGroupLabel>
                     <SidebarMenu>
                         {menuGroups.map((group) => {
-                            // If it's a group with sub-items
                             if (group.items) {
                                 return (
                                     <Collapsible key={group.title} asChild defaultOpen className="group/collapsible">
