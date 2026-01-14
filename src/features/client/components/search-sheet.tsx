@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, User } from 'lucide-react';
 import {
   Sheet,
@@ -12,15 +12,8 @@ import {
 } from '@/shared/components/ui/sheet';
 import { Input } from '@/shared/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar';
-
-// Mock data - sẽ thay bằng API call
-const mockUsers = [
-  { id: 1, fullName: 'Nguyễn Văn A', username: 'nguyenvana', avatarUrl: null },
-  { id: 2, fullName: 'Trần Thị B', username: 'tranthib', avatarUrl: null },
-  { id: 3, fullName: 'Lê Văn C', username: 'levanc', avatarUrl: null },
-  { id: 4, fullName: 'Phạm Thị D', username: 'phamthid', avatarUrl: null },
-  { id: 5, fullName: 'Hoàng Văn E', username: 'hoangvane', avatarUrl: null },
-];
+import { UserService } from '../services/user.service';
+import { User as UserType } from '../models/user';
 
 interface SearchSheetProps {
   children: React.ReactNode;
@@ -29,12 +22,36 @@ interface SearchSheetProps {
 export function SearchSheet({ children }: SearchSheetProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
+  const [users, setUsers] = useState<UserType[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  // Search users with debounce
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setUsers([]);
+      return;
+    }
 
-  const filteredUsers = mockUsers.filter(
-    (user) =>
-      user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.username.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    const timeoutId = setTimeout(async () => {
+      setIsLoading(true);
+      try {
+        const results = await UserService.searchUsers(searchQuery);
+        setUsers(results);
+      } catch (error) {
+        console.error('Search error:', error);
+        setUsers([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }, 300); // Debounce 300ms
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  const handleUserClick = (username: string) => {
+    // TODO: Navigate to user profile
+    window.location.href = `/profile/${username}`;
+    setIsOpen(false);
+  };
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -61,20 +78,25 @@ export function SearchSheet({ children }: SearchSheetProps) {
 
           <div className="h-[calc(100vh-200px)] overflow-y-auto">
             <div className="space-y-2">
-              {searchQuery && filteredUsers.length === 0 && (
+              {isLoading && (
+                <div className="text-center py-8 text-muted-foreground">
+                  Đang tìm kiếm...
+                </div>
+              )}
+
+              {!isLoading && searchQuery && users.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   Không tìm thấy người dùng nào
                 </div>
               )}
 
-              {searchQuery &&
-                filteredUsers.map((user) => (
+              {!isLoading &&
+                searchQuery &&
+                users.map((user) => (
                   <button
                     key={user.id}
                     className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors text-left"
-                    onClick={() => {
-                      setIsOpen(false);
-                    }}
+                    onClick={() => handleUserClick(user.username)}
                   >
                     <Avatar className="h-10 w-10">
                       <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName} />

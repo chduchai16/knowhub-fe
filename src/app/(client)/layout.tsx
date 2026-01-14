@@ -4,15 +4,16 @@ import { ClientSidebar } from '@/features/client/components/client-sidebar';
 import { ClientHeader } from '@/features/client/components/client-header';
 import { UserProvider } from '@/shared/hooks/use-user';
 import { cookies } from 'next/headers';
+import { User } from '@/features/admin/models/user';
 
 export default async function ClientLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
 
   const token = cookieStore.get('token')?.value;
   const sidebarState = cookieStore.get('sidebar_state')?.value;
-  const defaultOpen = sidebarState === 'false' ? false : true; // Default to true
+  const defaultOpen = sidebarState === 'false' ? false : true; 
 
-  let user = null;
+  let user : User | null = null;
 
   if (token) {
     try {
@@ -24,7 +25,8 @@ export default async function ClientLayout({ children }: { children: ReactNode }
       });
 
       if (res.ok) {
-        user = await res.json();
+        const response = await res.json();
+        user = response.data;
       }
     } catch (error) {
       console.error('Failed to fetch user profile:', error);

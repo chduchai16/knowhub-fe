@@ -1,0 +1,32 @@
+import api from '@/shared/configs/axios.config';
+import { User } from '../models/user';
+
+export class UserService {
+  static async getUserProfile(username: string): Promise<User> {
+    const response = await api.get(`/users/username/${username}`);
+    return response.data;
+  }
+
+  static async getCurrentUserProfile(): Promise<User> {
+    const response = await api.get('/auth/profile');
+    return response.data.data;
+  }
+
+  static async searchUsers(query: string): Promise<User[]> {
+    const response = await api.get(`/users/search?q=${query}`);
+    return response.data;
+  }
+
+  static async followUser(userId: number): Promise<void> {
+    await api.post(`/users/${userId}/follow`);
+  }
+
+  static async unfollowUser(userId: number): Promise<void> {
+    await api.delete(`/users/${userId}/follow`);
+  }
+
+  static async updateProfile(user: Partial<User>): Promise<User> {
+    const response = await api.put('/users/profile', user);
+    return response.data;
+  }
+}

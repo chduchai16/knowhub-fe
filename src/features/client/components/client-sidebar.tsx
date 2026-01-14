@@ -95,7 +95,13 @@ export function ClientSidebar() {
               </Avatar>
             </div>
           </div>
-          <span className="text-xl font-semibold">KnowHub</span>
+          <span
+            className="text-2xl"
+            style={{ fontFamily: "var(--font-pacifico)" }}
+          >
+            KnowHub
+          </span>
+
         </div>
       </SidebarHeader>
 
