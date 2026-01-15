@@ -52,14 +52,14 @@ const navigationItems = [
     icon: Bell,
   },
   {
-    title: 'Hồ sơ',
-    url: '/profile',
-    icon: User,
-  },
-  {
     title: 'Tạo bài viết',
     url: '/post/create',
     icon: PlusSquare,
+  },
+  {
+    title: 'Hồ sơ',
+    url: '/profile',
+    icon: User,
   },
   {
     title: 'Cài đặt',
