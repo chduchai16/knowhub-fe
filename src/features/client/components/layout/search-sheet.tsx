@@ -12,8 +12,8 @@ import {
 } from '@/shared/components/ui/sheet';
 import { Input } from '@/shared/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar';
-import { UserService } from '../services/user.service';
-import { User as UserType } from '../models/user';
+import { UserService } from '../../services/user.service';
+import { User as UserType } from '../../models/user';
 
 interface SearchSheetProps {
   children: React.ReactNode;

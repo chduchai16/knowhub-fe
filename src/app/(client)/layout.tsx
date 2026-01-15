@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { SidebarInset, SidebarProvider } from '@/shared/components/ui/sidebar';
-import { ClientSidebar } from '@/features/client/components/client-sidebar';
-import { ClientHeader } from '@/features/client/components/client-header';
+import { ClientSidebar } from '@/features/client/components/layout/client-sidebar';
+import { ClientHeader } from '@/features/client/components/layout/client-header';
 import { UserProvider } from '@/shared/hooks/use-user';
 import { cookies } from 'next/headers';
 import { User } from '@/features/admin/models/user';
@@ -35,7 +35,7 @@ export default async function ClientLayout({ children }: { children: ReactNode }
 
   return (
     <UserProvider initialUser={user}>
-      <SidebarProvider defaultOpen={defaultOpen}>
+      <SidebarProvider defaultOpen={defaultOpen} suppressHydrationWarning>
         <ClientSidebar />
         <SidebarInset>
           <div className="flex flex-1 flex-col min-h-screen">
