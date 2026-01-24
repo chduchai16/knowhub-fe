@@ -116,7 +116,7 @@ export function ClientSidebar() {
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SearchSheet>
-                        <SidebarMenuButton className="text-sm py-5 px-3 font-medium cursor-pointer">
+                        <SidebarMenuButton className="text-sm py-5 px-3 font-medium cursor-pointer !bg-transparent">
                           <item.icon className="!w-6 !h-6" />
                           <span>{item.title}</span>
                         </SidebarMenuButton>
@@ -127,9 +127,12 @@ export function ClientSidebar() {
                 
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={isActive} className="text-sm py-5 px-3 font-medium">
+                    <SidebarMenuButton 
+                      asChild 
+                      className={`text-sm py-5 px-3 !bg-transparent ${isActive ? 'font-bold' : 'font-medium'}`}
+                    >
                       <Link href={item.url}>
-                        <item.icon className="!w-6 !h-6" />
+                        <item.icon className={`!w-6 !h-6 ${isActive ? 'stroke-[2.5]' : ''}`} />
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>

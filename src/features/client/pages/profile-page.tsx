@@ -18,31 +18,42 @@ export function ProfilePage() {
   const [Loading , setLoading] = useState(false);
 
   useEffect(() => {
+    console.log("ProfilePage: useEffect triggered", { username: user?.username, page });
+    
+    // Chỉ gọi API khi đã có thông tin user
+    if (!user?.username) {
+      console.log("ProfilePage: No username found, skipping fetch");
+      return;
+    }
+
     const fetchPosts = async () => {
       setLoading(true);
       try {
-        const response = await PostService.getPagedPostsOfUser(page -1 , limit , user?.username || '');
+        console.log("ProfilePage: Fetching posts for", user.username);
+        const response = await PostService.getPagedPostsOfUser(page -1 , limit , user.username);
+        console.log("ProfilePage: Posts fetched", response.content.length);
         setPosts(response.content);
+      } catch (error) {
+        console.error("ProfilePage: Fetch posts failed", error);
       } finally {
         setLoading(false);
       }
     }
     fetchPosts();
-  },[page])
+  }, [page, user?.username])
 
   if (!user) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground">Loading...</p>
+        <p className="text-muted-foreground">Đang tải...</p>
       </div>
     );
   }
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
-      {/* Avatar + User Info */}
       <div className="flex gap-8 md:gap-20 mb-8">
-        {/* Avatar */}
+        {/* avatar*/}
         <div className="flex-shrink-0">
           <Avatar className="w-32 h-32 md:w-40 md:h-40">
             <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName || 'User'} />
@@ -55,31 +66,29 @@ export function ProfilePage() {
         {/* user info */}
         <div className="flex-1">
           <div className="flex items-center gap-4 mb-5">
-            <h1 className="text-xl font-normal">{user.username}</h1>
-            <Button variant="secondary" size="sm" className="px-4">
-              Edit profile
-            </Button>
-            <Button variant="secondary" size="sm" className="px-4">
-              View archive
-            </Button>
-            <Button variant="ghost" size="icon">
-              <Settings className="w-5 h-5" />
+            <h1 className="text-xl font-normal">{ user.fullName ||user.username}</h1>
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              className="px-4"
+              onClick={() => window.location.href = '/profile/edit'}
+            >
+              Chỉnh sửa hồ sơ
             </Button>
           </div>
 
-          {/* Stats */}
           <div className="flex gap-8 mb-5">
             <div>
               <span className="font-semibold">{user.postQuantity || 0}</span>
-              <span className="text-sm ml-1">posts</span>
+              <span className="text-sm ml-1">bài viết</span>
             </div>
             <div className="cursor-pointer hover:text-gray-600">
               <span className="font-semibold">{user.followerQuantity || 0}</span>
-              <span className="text-sm ml-1">followers</span>
+              <span className="text-sm ml-1">người theo dõi</span>
             </div>
             <div className="cursor-pointer hover:text-gray-600">
               <span className="font-semibold">{user.followingQuantity || 0}</span>
-              <span className="text-sm ml-1">following</span>
+              <span className="text-sm ml-1">đang theo dõi</span>
             </div>
           </div>
 
@@ -101,13 +110,13 @@ export function ProfilePage() {
           <div className="w-16 h-16 rounded-full border-2 border-gray-300 flex items-center justify-center cursor-pointer hover:border-gray-400 transition-colors">
             <span className="text-3xl text-gray-400">+</span>
           </div>
-          <span className="text-xs">New</span>
+          <span className="text-xs">Mới</span>
         </div>
 
         {[
-          { name: 'Travel', color: 'from-purple-400 to-pink-400' },
-          { name: 'Food', color: 'from-yellow-400 to-orange-400' },
-          { name: 'Work', color: 'from-blue-400 to-cyan-400' },
+          { name: 'Du lịch', color: 'from-purple-400 to-pink-400' },
+          { name: 'Ẩm thực', color: 'from-yellow-400 to-orange-400' },
+          { name: 'Công việc', color: 'from-blue-400 to-cyan-400' },
         ].map((story) => (
           <div key={story.name} className="flex flex-col items-center gap-1 flex-shrink-0">
             <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${story.color} flex items-center justify-center cursor-pointer hover:scale-105 transition-transform p-0.5`}>
@@ -124,38 +133,42 @@ export function ProfilePage() {
         <TabsList className="w-full justify-center border-t">
           <TabsTrigger value="posts" className="flex items-center gap-2">
             <Grid3x3 className="w-4 h-4" />
-            <span className="hidden md:inline">POSTS</span>
+            <span className="hidden md:inline">BÀI VIẾT</span>
           </TabsTrigger>
           <TabsTrigger value="saved" className="flex items-center gap-2">
             <Bookmark className="w-4 h-4" />
-            <span className="hidden md:inline">SAVED</span>
+            <span className="hidden md:inline">ĐÃ LƯU</span>
           </TabsTrigger>
           <TabsTrigger value="tagged" className="flex items-center gap-2">
             <UserSquare className="w-4 h-4" />
-            <span className="hidden md:inline">TAGGED</span>
+            <span className="hidden md:inline">ĐƯỢC GẮN THẺ</span>
           </TabsTrigger>
         </TabsList>
 
         {/* Posts Tab */}
         <TabsContent value="posts" className="mt-8">
-          {posts.length === 0 ? (
+          {Loading ? (
+            <div className="flex justify-center py-20">
+              <p className="text-muted-foreground">Đang tải bài viết...</p>
+            </div>
+          ) : posts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16">
               <div className="w-16 h-16 rounded-full border-2 border-black flex items-center justify-center mb-4">
                 <Camera className="w-8 h-8" />
               </div>
-              <h2 className="text-3xl font-bold mb-2">Share Photos</h2>
+              <h2 className="text-3xl font-bold mb-2">Chia sẻ ảnh</h2>
               <p className="text-sm text-gray-600 mb-4">
-                When you share photos, they will appear on your profile.
+                Khi bạn chia sẻ ảnh, chúng sẽ xuất hiện trên hồ sơ của bạn.
               </p>
               <button className="text-blue-500 font-semibold text-sm hover:text-blue-700">
-                Share your first photo
+                Chia sẻ ảnh đầu tiên của bạn
               </button>
             </div>
           ) : (
             <div className="grid grid-cols-3 gap-1 md:gap-4">
               {/* danh sách post */}
               {posts.map((post) => (
-                <PostItem post={post} />
+                <PostItem key={post.id} post={post} />
               ))}
             </div>
           )}
@@ -167,9 +180,9 @@ export function ProfilePage() {
             <div className="w-16 h-16 rounded-full border-2 border-black flex items-center justify-center mb-4">
               <Bookmark className="w-8 h-8" />
             </div>
-            <h2 className="text-2xl font-bold mb-2">Save</h2>
+            <h2 className="text-2xl font-bold mb-2">Đã lưu</h2>
             <p className="text-sm text-gray-600">
-              Save photos and videos that you want to see again.
+              Lưu ảnh và video mà bạn muốn xem lại.
             </p>
           </div>
         </TabsContent>
@@ -180,9 +193,9 @@ export function ProfilePage() {
             <div className="w-16 h-16 rounded-full border-2 border-black flex items-center justify-center mb-4">
               <UserSquare className="w-8 h-8" />
             </div>
-            <h2 className="text-2xl font-bold mb-2">Photos of you</h2>
+            <h2 className="text-2xl font-bold mb-2">Ảnh có mặt bạn</h2>
             <p className="text-sm text-gray-600">
-              When people tag you in photos, they'll appear here.
+              Khi mọi người gắn thẻ bạn trong ảnh, chúng sẽ xuất hiện ở đây.
             </p>
           </div>
         </TabsContent>
