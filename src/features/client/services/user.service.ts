@@ -26,7 +26,7 @@ export class UserService {
   }
 
   static async updateProfile(user: Partial<User>): Promise<User> {
-    const response = await api.put('/users/profile', user);
+    const response = await api.put('/users', user);
     return response.data;
   }
 }
