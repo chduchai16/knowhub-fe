@@ -81,7 +81,7 @@ export function ClientSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="border-b px-6 py-4">
+      <SidebarHeader className="border-b px-4 py-4">
         <div className="flex items-center gap-2">
           <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center">
             <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 text-white">
@@ -116,7 +116,7 @@ export function ClientSidebar() {
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SearchSheet>
-                        <SidebarMenuButton className="text-sm py-5 px-3 font-medium cursor-pointer !bg-transparent">
+                        <SidebarMenuButton className="text-sm py-5 px-3 font-medium cursor-pointer transition-colors hover:bg-muted bg-transparent">
                           <item.icon className="!w-6 !h-6" />
                           <span>{item.title}</span>
                         </SidebarMenuButton>
@@ -129,7 +129,7 @@ export function ClientSidebar() {
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton 
                       asChild 
-                      className={`text-sm py-5 px-3 !bg-transparent ${isActive ? 'font-bold' : 'font-medium'}`}
+                      className={`text-sm py-5 px-3 transition-colors hover:bg-muted bg-transparent ${isActive ? 'font-bold' : 'font-medium'}`}
                     >
                       <Link href={item.url}>
                         <item.icon className={`!w-6 !h-6 ${isActive ? 'stroke-[2.5]' : ''}`} />

@@ -18,20 +18,15 @@ export function ProfilePage() {
   const [Loading , setLoading] = useState(false);
 
   useEffect(() => {
-    console.log("ProfilePage: useEffect triggered", { username: user?.username, page });
-    
     // Chỉ gọi API khi đã có thông tin user
     if (!user?.username) {
-      console.log("ProfilePage: No username found, skipping fetch");
       return;
     }
 
     const fetchPosts = async () => {
       setLoading(true);
       try {
-        console.log("ProfilePage: Fetching posts for", user.username);
         const response = await PostService.getPagedPostsOfUser(page -1 , limit , user.username);
-        console.log("ProfilePage: Posts fetched", response.content.length);
         setPosts(response.content);
       } catch (error) {
         console.error("ProfilePage: Fetch posts failed", error);

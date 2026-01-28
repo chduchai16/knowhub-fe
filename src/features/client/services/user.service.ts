@@ -29,4 +29,9 @@ export class UserService {
     const response = await api.put('/users', user);
     return response.data;
   }
+
+  static async searchUsersByName (keyword : string ): Promise<User[]> {
+    const response = await api.get(`/users/search/${keyword}`);
+    return response.data;
+  }
 }
