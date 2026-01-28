@@ -34,7 +34,7 @@ export function SearchSheet({ children }: SearchSheetProps) {
     const timeoutId = setTimeout(async () => {
       setIsLoading(true);
       try {
-        const results = await UserService.searchUsers(searchQuery);
+        const results = await UserService.searchUsersByName(searchQuery);
         setUsers(results);
       } catch (error) {
         console.error('Search error:', error);
