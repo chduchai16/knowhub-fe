@@ -11,8 +11,7 @@ export default async function ClientLayout({ children }: { children: ReactNode }
 
   const token = cookieStore.get('token')?.value;
   const sidebarState = cookieStore.get('sidebar_state')?.value;
-  const defaultOpen = sidebarState === 'false' ? false : true; 
-
+  const defaultOpen = false; // Always start collapsed as per user request
   let user : User | null = null;
 
   if (token) {
