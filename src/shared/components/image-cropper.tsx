@@ -8,7 +8,7 @@ import { getCroppedImg } from '@/shared/utils/crop-image';
 
 interface ImageCropperProps {
   image: string;
-  onCropComplete: (croppedImage: string) => void;
+  onCropComplete: (croppedBlob: Blob, previewUrl: string) => void;
   onCancel: () => void;
 }
 
@@ -32,13 +32,17 @@ export function ImageCropper({ image, onCropComplete, onCancel }: ImageCropperPr
   const handleCrop = async () => {
     try {
       if (croppedAreaPixels) {
-        const croppedImage = await getCroppedImg(image, croppedAreaPixels);
-        onCropComplete(croppedImage);
+        const blob = await getCroppedImg(image, croppedAreaPixels);
+        if (blob) {
+          const previewUrl = URL.createObjectURL(blob);
+          onCropComplete(blob, previewUrl);
+        }
       }
     } catch (e) {
       console.error(e);
     }
   };
+
 
   return (
     <Dialog open={!!image} onOpenChange={(open) => !open && onCancel()}>

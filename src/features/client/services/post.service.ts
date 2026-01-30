@@ -18,4 +18,30 @@ export class PostService {
             throw error;
         }
     }
+
+    public static async createPost (post : Post) : Promise<Post> {
+        try {
+            const response = await api.post('/posts' , post);
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public static async deletePost (postId : number) : Promise<void> {
+        try {
+            await api.delete(`/posts/${postId}`);
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public static async updatePost (postId : number , post : Post) : Promise<Post> {
+        try {
+            const response = await api.put(`/posts/${postId}` , post);
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    }
 }
