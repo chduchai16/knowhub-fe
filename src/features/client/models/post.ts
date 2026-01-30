@@ -10,6 +10,7 @@ export interface Post {
     status? : string ;
     tags ?: Tag[] ;
     medias ?: Media[] ;
+    mediaIds? : number[] ;
     createdAt ?: string ;
     updatedAt ?: string ;
 }

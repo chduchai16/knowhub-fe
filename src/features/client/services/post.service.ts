@@ -18,4 +18,13 @@ export class PostService {
             throw error;
         }
     }
+
+    public static async createPost (post : Post) : Promise<Post> {
+        try {
+            const response = await api.post('/posts' , post);
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    }
 }
