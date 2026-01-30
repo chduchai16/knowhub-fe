@@ -6,16 +6,21 @@ import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Label } from '@/shared/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar';
-import { ArrowLeft, Upload } from 'lucide-react';
+import { ArrowLeft, Upload, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { UserService } from '../services/user.service';
 import { toast } from 'sonner';
+import { ImageCropper } from '@/shared/components/image-cropper';
+import { MediaService } from '@/shared/services/media.service';
 
 export function EditProfilePage() {
   const { user, setUser } = useUser();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [tempAvatar, setTempAvatar] = useState('');
+  const [loadingUploadAvatar, setLoadingUploadAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     id: user?.id,
@@ -51,6 +56,44 @@ export function EditProfilePage() {
     }
   };
 
+  const openAvatarExplorer = () => {
+    avatarInputRef.current?.click();
+  };
+
+  const onAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result;
+        if (typeof result === 'string') {
+          setTempAvatar(result);
+          e.target.value = '';
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAvatarCropComplete = async (croppedBlob: Blob, previewUrl: string) => {
+    setTempAvatar('');
+    setLoadingUploadAvatar(true);
+    
+    const file = new File([croppedBlob], 'avatar.jpg', { type: 'image/jpeg' });
+    
+    try {
+      const avatarUrl = await MediaService.uploadAvatar(file);
+      if (avatarUrl) {
+        setUser({ ...user, avatarUrl } as any);
+        toast.success('Cập nhật ảnh đại diện thành công');
+      }
+    } catch (error) {
+      toast.error('Lỗi khi tải ảnh lên');
+    } finally {
+      setLoadingUploadAvatar(false);
+    }
+  };
+
   return (
     <div className="max-w-2xl mx-auto py-8 px-4">
       <div className="flex items-center gap-4 mb-8">
@@ -66,14 +109,27 @@ export function EditProfilePage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="flex items-center gap-6">
-          <Avatar className="w-24 h-24">
-            <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName || 'User'} />
-            <AvatarFallback className="text-2xl">
-              {user.fullName?.charAt(0) || 'U'}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar className="w-24 h-24">
+              <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName || 'User'} />
+              <AvatarFallback className="text-2xl">
+                {user.fullName?.charAt(0) || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            {loadingUploadAvatar && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
+                <Loader2 className="w-8 h-8 animate-spin text-white" />
+              </div>
+            )}
+          </div>
           <div>
-            <Button type="button" variant="outline" size="sm">
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm" 
+              onClick={openAvatarExplorer}
+              disabled={loadingUploadAvatar}
+            >
               <Upload className="w-4 h-4 mr-2" />
               Thay đổi ảnh
             </Button>
@@ -81,6 +137,13 @@ export function EditProfilePage() {
               JPG, PNG hoặc GIF. Tối đa 2MB
             </p>
           </div>
+          <input
+            type="file"
+            accept="image/*"
+            ref={avatarInputRef}
+            onChange={onAvatarFileChange}
+            className="hidden"
+          />
         </div>
 
         <div className="space-y-2">
@@ -190,6 +253,14 @@ export function EditProfilePage() {
           </Button>
         </div>
       </form>
+
+      {tempAvatar && (
+        <ImageCropper
+          image={tempAvatar}
+          onCropComplete={handleAvatarCropComplete}
+          onCancel={() => setTempAvatar('')}
+        />
+      )}
     </div>
   );
 }
