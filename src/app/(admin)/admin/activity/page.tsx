@@ -1,4 +1,4 @@
-import { ActivityList } from "@/features/admin/pages/activity-management/activity-list";
+import { ActivityList } from "@/features/activity/components/admin/activity-list";
 
 export default function Page() {
     return <ActivityList />;

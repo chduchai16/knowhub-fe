@@ -1,4 +1,4 @@
-import { UserDetail } from "@/features/admin/pages/user-management/user/user-detail";
+import { UserDetail } from "@/features/user/components/admin/user-detail";
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;

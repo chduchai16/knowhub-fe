@@ -1,4 +1,4 @@
-import { DashboardPage } from "@/features/admin/pages/dashboard/dashboard";
+import { DashboardPage } from "@/features/dashboard/components/dashboard";
 
 export default function Page() {
     return <DashboardPage />;

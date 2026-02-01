@@ -1,10 +1,10 @@
 import { ReactNode } from 'react';
 import { SidebarInset, SidebarProvider } from '@/shared/components/ui/sidebar';
-import { ClientSidebar } from '@/features/client/components/layout/client-sidebar';
-import { ClientHeader } from '@/features/client/components/layout/client-header';
+import { ClientHeader } from '@/components/layout/client/client-header';
 import { UserProvider } from '@/shared/hooks/use-user';
 import { cookies } from 'next/headers';
-import { User } from '@/features/admin/models/user';
+import { User } from '@/features/user/models/user';
+import { ClientSidebar } from '@/components/layout/client/client-sidebar';
 
 export default async function ClientLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();

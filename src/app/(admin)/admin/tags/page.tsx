@@ -1,4 +1,4 @@
-import { TagList } from "@/features/admin/pages/post-management/tag/tag-list";
+import { TagList } from "@/features/tag/components/admin/tag-list";
 
 export default function Page() {
     return <TagList />;

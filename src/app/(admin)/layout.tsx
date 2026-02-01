@@ -1,10 +1,10 @@
 import { ReactNode } from "react";
 import { SidebarInset, SidebarProvider } from "@/shared/components/ui/sidebar";
-import { AdminSidebar } from "@/features/admin/components/admin-sidebar";
-import { AdminHeader } from "@/features/admin/components/admin-header";
-import { AdminFooter } from "@/features/admin/components/admin-footer";
+import { AdminSidebar } from "@/components/layout/admin/admin-sidebar";
+import { AdminFooter } from "@/components/layout/admin/admin-footer";
 import { UserProvider } from "@/shared/hooks/use-user";
 import { cookies } from "next/headers";
+import { AdminHeader } from "@/components/layout/admin/admin-header";
 
 export default async function Layout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();

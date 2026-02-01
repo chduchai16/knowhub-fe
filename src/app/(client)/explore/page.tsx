@@ -1,4 +1,4 @@
-import { ExplorePage } from '@/features/client/pages/explore-page';
+import { ExplorePage } from '@/features/post/components/client/explore-page';
 
 export default function Page() {
   return <ExplorePage />;
