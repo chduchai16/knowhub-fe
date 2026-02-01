@@ -1,4 +1,4 @@
-import { PostList } from "@/features/admin/pages/post-management/post/post-list";
+import { PostList } from "@/features/post/components/admin/post-list";
 
 export default function Page() {
     return <PostList />;

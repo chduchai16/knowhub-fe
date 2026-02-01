@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState } from "react";
-import { User } from "@/features/admin/models/user";
+import { User } from "@/features/user/models/user";
 
 type UserContextType = {
   user: User | null;

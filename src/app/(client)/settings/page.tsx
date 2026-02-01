@@ -1,4 +1,4 @@
-import { SettingsPage } from '@/features/client/pages/settings-page';
+import { SettingsPage } from '@/features/user/components/client/settings-page';
 
 export default function Page() {
   return <SettingsPage />;

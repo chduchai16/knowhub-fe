@@ -1,4 +1,4 @@
-import { UserList } from "@/features/admin/pages/user-management/user/user-list";
+import { UserList } from "@/features/user/components/admin/user-list";
 
 export default function Page() {
     return <UserList />;
