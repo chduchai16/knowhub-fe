@@ -5,6 +5,7 @@ import { UserProvider } from '@/shared/hooks/use-user';
 import { cookies } from 'next/headers';
 import { User } from '@/features/user/models/user';
 import { ClientSidebar } from '@/components/layout/client/client-sidebar';
+import { redirect } from 'next/navigation';
 
 export default async function ClientLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
@@ -26,9 +27,13 @@ export default async function ClientLayout({ children }: { children: ReactNode }
       if (res.ok) {
         const response = await res.json();
         user = response.data;
+      } else {
+        cookieStore.delete('token');
+        redirect('/login');
       }
     } catch (error) {
-      console.error('Failed to fetch user profile:', error);
+      cookieStore.delete('token');
+      redirect('/login');
     }
   }
 

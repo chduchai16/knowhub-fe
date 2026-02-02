@@ -8,7 +8,6 @@ import {
   Bell,
   User,
   PlusSquare,
-  LogOut,
   Search,
   Menu,
   MessageSquare,
@@ -27,9 +26,6 @@ import {
 } from '@/shared/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar';
 import { useUser } from '@/shared/hooks/use-user';
-import { Button } from '@/shared/components/ui/button';
-import Cookies from 'js-cookie';
-import { useRouter } from 'next/navigation';
 import { SearchSheet } from '@/features/user/components/client/search-sheet';
 
 const navigationItems = [
@@ -78,14 +74,7 @@ const navigationItems = [
 export function ClientSidebar() {
   const pathname = usePathname();
   const { user } = useUser();
-  const router = useRouter();
   const { setOpen, state } = useSidebar();
-
-  const handleLogout = () => {
-    Cookies.remove('token');
-    router.push('/login');
-    router.refresh();
-  };
 
   const isCollapsed = state === 'collapsed';
 
@@ -162,31 +151,17 @@ export function ClientSidebar() {
 
       <SidebarFooter className={`border-t transition-all duration-300 ${isCollapsed ? 'px-0 py-4' : 'p-4'}`}>
         {user && (
-          <div className="space-y-4">
-            <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
-              <Avatar className="h-10 w-10 border shadow-sm">
-                <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName || 'User'} />
-                <AvatarFallback>{user.fullName?.charAt(0) || 'U'}</AvatarFallback>
-              </Avatar>
-              {!isCollapsed && (
-                <div className="flex-1 min-w-0">
-                  <p className="text-base font-medium truncate">{user.fullName}</p>
-                  <p className="text-sm text-muted-foreground truncate">@{user.username}</p>
-                </div>
-              )}
-            </div>
-            <div className={`flex ${isCollapsed ? 'justify-center' : ''}`}>
-              <Button
-                variant="outline"
-                size="sm"
-                className={`transition-all ${isCollapsed ? 'w-10 h-10 p-0 border-none hover:bg-red-50 text-red-600' : 'w-full'}`}
-                onClick={handleLogout}
-                title={isCollapsed ? "Đăng xuất" : ""}
-              >
-                <LogOut className={`w-4 h-4 ${isCollapsed ? '' : 'mr-2'}`} />
-                {!isCollapsed && <span>Đăng xuất</span>}
-              </Button>
-            </div>
+          <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
+            <Avatar className="h-10 w-10 border shadow-sm">
+              <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName || 'User'} />
+              <AvatarFallback>{user.fullName?.charAt(0) || 'U'}</AvatarFallback>
+            </Avatar>
+            {!isCollapsed && (
+              <div className="flex-1 min-w-0">
+                <p className="text-base font-medium truncate">{user.fullName}</p>
+                <p className="text-sm text-muted-foreground truncate">@{user.username}</p>
+              </div>
+            )}
           </div>
         )}
       </SidebarFooter>

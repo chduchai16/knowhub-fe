@@ -1,4 +1,19 @@
+'use client';
+
+import { Button } from '@/shared/components/ui/button';
+import { LogOut } from 'lucide-react';
+import Cookies from 'js-cookie';
+import { useRouter } from 'next/navigation';
+
 export function SettingsPage() {
+  const router = useRouter();
+
+  const handleLogout = () => {
+    Cookies.remove('token');
+    router.push('/login');
+    router.refresh();
+  };
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold">Cài đặt</h1>
@@ -45,6 +60,14 @@ export function SettingsPage() {
             </div>
           </div>
         </div>
+
+          <Button
+            className="w-full"
+            onClick={handleLogout}
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Đăng xuất khỏi thiết bị này
+          </Button>
       </div>
     </div>
   );
