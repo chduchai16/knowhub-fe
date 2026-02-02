@@ -4,6 +4,7 @@ import { UserService } from "@/features/user/services/user-service";
 import { User } from "@/features/user/models/user";
 import { useEffect, useState } from "react";
 import { SendHorizonal } from "lucide-react";
+import { getRelativeTime } from "@/shared/utils";
 
 export function PostPopup(
    { post }: { post: Post }
@@ -23,8 +24,12 @@ export function PostPopup(
         <div className="flex h-[80vh] w-full">
             <div className="w-1/2 flex flex-col">
                 <div className="flex items-center gap-3 p-4 border-b">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold">
-                        <img src={user?.avatarUrl || ''} alt="" />
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold overflow-hidden">
+                        {user?.avatarUrl ? (
+                            <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                            <span>{user?.username?.charAt(0).toUpperCase() || 'U'}</span>
+                        )}
                     </div>
                     <div>
                         <p className="font-semibold text-sm">{user?.username || 'Loading...'}</p>
@@ -49,14 +54,19 @@ export function PostPopup(
 
                 <div className="flex-1 overflow-y-auto p-4">
                     <div className="flex gap-3 mb-4 items-center">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
-                            <img src={user?.avatarUrl || ''} alt="" />
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0 overflow-hidden">
+                            {user?.avatarUrl ? (
+                                <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                                <span>{user?.username?.charAt(0).toUpperCase() || 'U'}</span>
+                            )}
                         </div>
                         <div className="flex-1">
                             <p className="text-sm">
                                 <span className="font-semibold mr-2">{user?.username || 'User'}</span>
                                 {post.content}
                             </p>
+                            <p className="text-xs text-gray-500">{getRelativeTime(post.createdAt)}</p>
                         </div>
                     </div>
 
