@@ -1,5 +1,5 @@
-import { AuthHeader } from "@/features/auth/auth/components/auth-header";
-import AuthSidebar from "@/features/auth/auth/components/auth-sidebar";
+import { AuthHeader } from "@/features/auth/components/auth-header";
+import AuthSidebar from "@/features/auth/components/auth-sidebar";
 import React from "react";
 
 export const metadata = {

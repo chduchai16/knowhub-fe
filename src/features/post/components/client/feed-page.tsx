@@ -1,31 +1,46 @@
+'use client'
+
+import { PostService } from "../../services/post-service";
+import { useEffect, useState } from "react";
+import { Post } from "../../models/post";
+import { FeedContent } from "./feed-content";
+
 export function FeedPage() {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [page , setPage] = useState(1);
+  const [limit , setLimit] = useState(3);
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        setLoading(true);
+        const response = await PostService.getNewFeeds(page -1 , limit);
+        setPosts(response.content);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPosts();
+  }, []);
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Bảng tin</h1>
       </div>
 
-      {/* Feed content sẽ được implement sau */}
+      {/* các feeds*/}
       <div className="space-y-4">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-white rounded-lg border p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gray-200" />
-              <div>
-                <p className="font-semibold">User {i}</p>
-                <p className="text-sm text-gray-500">2 giờ trước</p>
-              </div>
-            </div>
-            <p className="text-gray-700">
-              Đây là nội dung bài viết mẫu số {i}. Nội dung thực sẽ được load từ API.
-            </p>
-            <div className="flex gap-4 text-sm text-gray-500">
-              <button className="hover:text-blue-500">Thích</button>
-              <button className="hover:text-blue-500">Bình luận</button>
-              <button className="hover:text-blue-500">Chia sẻ</button>
-            </div>
-          </div>
-        ))}
+        {loading ? (
+          <div className="text-center py-8 text-gray-500">Đang tải...</div>
+        ) : posts && posts.length > 0 ? (
+          posts.map((post) => (
+            <FeedContent key={post.id} post={post} />
+          ))
+        ) : (
+          <div className="text-center py-8 text-gray-500">Chưa có bài viết nào</div>
+        )}
       </div>
     </div>
   );
