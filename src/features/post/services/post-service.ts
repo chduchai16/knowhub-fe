@@ -19,6 +19,20 @@ export class PostService {
         }
     }
 
+    public static async getNewFeeds (page : number , limit : number) : Promise<PageResponse<Post>> {
+        try {
+            const response = await api.get('/posts/feeds' , {
+                params : {
+                    page : page,
+                    limit : limit
+                }
+            });
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    }
+
     public static async createPost (post : Post) : Promise<Post> {
         try {
             const response = await api.post('/posts' , post);

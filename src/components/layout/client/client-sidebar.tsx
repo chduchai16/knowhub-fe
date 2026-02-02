@@ -113,16 +113,16 @@ export function ClientSidebar() {
       <SidebarContent>
         <SidebarGroup className={isCollapsed ? 'px-0' : 'px-2'}>
           <SidebarGroupContent>
-            <SidebarMenu className={`!gap-3 ${isCollapsed ? 'items-center' : ''}`}>
+            <SidebarMenu className={`${isCollapsed ? '!gap-2 items-center' : '!gap-3'}`}>
               {navigationItems.map((item) => {
                 const isActive = pathname === item.url || pathname?.startsWith(item.url + '/');
                 
                 if (item.title === 'Tìm kiếm') {
                   return (
-                    <SidebarMenuItem key={item.title} className="w-full flex justify-center">
+                    <SidebarMenuItem key={item.title} className={`w-full flex justify-center ${isCollapsed ? 'my-1.5' : ''}`}>
                       <SearchSheet>
-                        <SidebarMenuButton className={`text-sm py-5 px-3 font-medium cursor-pointer transition-colors hover:bg-muted bg-transparent ${isCollapsed ? 'justify-center !px-0 !w-10' : ''}`}>
-                          <item.icon className="!w-6 !h-6 flex-shrink-0" />
+                        <SidebarMenuButton className={`text-base font-medium cursor-pointer transition-colors hover:bg-muted bg-transparent ${isCollapsed ? 'justify-center !w-14 !px-3 !py-3' : 'py-5 px-3'}`}>
+                          <item.icon className="!w-7 !h-7 flex-shrink-0" />
                           {!isCollapsed && <span className="ml-3">{item.title}</span>}
                         </SidebarMenuButton>
                       </SearchSheet>
@@ -131,13 +131,13 @@ export function ClientSidebar() {
                 }
                 
                 return (
-                  <SidebarMenuItem key={item.title} className="w-full flex justify-center">
+                  <SidebarMenuItem key={item.title} className={`w-full flex justify-center ${isCollapsed ? 'my-1.5' : ''}`}>
                     <SidebarMenuButton 
                       asChild 
-                      className={`text-sm py-5 px-3 transition-colors hover:bg-muted bg-transparent ${isActive ? 'font-bold' : 'font-medium'} ${isCollapsed ? 'justify-center !px-0 !w-10' : ''}`}
+                      className={`text-base transition-colors hover:bg-muted bg-transparent ${isActive ? 'font-bold' : 'font-medium'} ${isCollapsed ? 'justify-center !w-14 !px-3 !py-3' : 'py-5 px-3'}`}
                     >
                       <Link href={item.url}>
-                        <item.icon className={`!w-6 !h-6 flex-shrink-0 ${isActive ? 'stroke-[2.5]' : ''}`} />
+                        <item.icon className={`!w-7 !h-7 flex-shrink-0 ${isActive ? 'stroke-[2.5]' : ''}`} />
                         {!isCollapsed && <span className="ml-3">{item.title}</span>}
                       </Link>
                     </SidebarMenuButton>

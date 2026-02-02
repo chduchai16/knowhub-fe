@@ -41,7 +41,7 @@ export function PostPopup(
                         <img
                             src={post.medias![0].url}
                             alt=""
-                            className="max-w-full max-h-full object-contain"
+                            className="w-full h-full object-cover"
                         />
                     </div>
                 )}
