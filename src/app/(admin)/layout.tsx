@@ -15,7 +15,7 @@ export default async function Layout({ children }: { children: ReactNode }) {
   let user = null;
 
   if (token) {
-    const res = await fetch("http://localhost:8080/api/auth/profile", {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api" }/auth/profile`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

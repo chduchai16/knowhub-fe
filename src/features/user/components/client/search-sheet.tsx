@@ -99,9 +99,9 @@ export function SearchSheet({ children }: SearchSheetProps) {
                     onClick={() => handleUserClick(user.username)}
                   >
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName} />
+                      <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName ?? ""} />
                       <AvatarFallback>
-                        {user.fullName.charAt(0)}
+                        {user.fullName?.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">

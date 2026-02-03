@@ -12,29 +12,30 @@ export default async function ClientLayout({ children }: { children: ReactNode }
 
   const token = cookieStore.get('token')?.value;
   const sidebarState = cookieStore.get('sidebar_state')?.value;
-  const defaultOpen = false; // Always start collapsed as per user request
+  const defaultOpen = false;
+
+  if (!token) {
+    redirect('/login');
+  }
+
   let user : User | null = null;
 
-  if (token) {
-    try {
-      const res = await fetch('http://localhost:8080/api/auth/profile', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        cache: 'no-store',
-      });
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api" }/auth/profile`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: 'no-store',
+    });
 
-      if (res.ok) {
-        const response = await res.json();
-        user = response.data;
-      } else {
-        cookieStore.delete('token');
-        redirect('/login');
-      }
-    } catch (error) {
-      cookieStore.delete('token');
+    if (res.ok) {
+      const response = await res.json();
+      user = response.data;
+    } else {
       redirect('/login');
     }
+  } catch (error) {
+    redirect('/login');
   }
 
   return (

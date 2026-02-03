@@ -19,10 +19,10 @@ import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import dayjs from "dayjs";
-import { Role } from "@/features/role/models/types";
 import { RoleService } from "@/features/role/services/role-service";
 import { roleSchema, RoleSchema } from "@/features/role/schemas/role-schema";
 import { UserAction } from "@/shared/models/user-action";
+import { Role } from "../../models/role";
 
 interface RoleDetailProps {
   roleId?: string;
