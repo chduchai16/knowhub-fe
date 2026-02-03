@@ -1,4 +1,4 @@
-import AuthTabs from "@/features/auth/auth/components/auth-tabs";
+import AuthTabs from "@/features/auth/components/auth-tabs";
 
 export const metadata = {
 	title: "Đăng ký - KnowHub",

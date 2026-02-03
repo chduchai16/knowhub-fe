@@ -1,6 +1,5 @@
 "use client"
 
-import { Role } from "@/features/role/models/types";
 import { RoleService } from "@/features/role/services/role-service";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -50,6 +49,7 @@ import { toast } from "sonner";
 import { cn } from "@/shared/utils";
 import dayjs from "dayjs";
 import { UserAction } from "@/shared/models/user-action";
+import { Role } from "../../models/role";
 
 export function RoleList() {
     const router = useRouter();
