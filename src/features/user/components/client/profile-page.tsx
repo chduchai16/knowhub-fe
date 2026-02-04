@@ -9,9 +9,16 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { Post } from '@/features/post/models/post';
 import { PostService } from '@/features/post/services/post-service';
 import { PostItem } from '@/features/post/components/shared/post-item';
+import { User } from '../../models/user';
+import { UserService } from '../../services/user-service';
 
-export function ProfilePage() {
-  const { user } = useUser();
+interface ProfilePageProps {
+  username?: string; // Username từ URL params
+}
+
+export function ProfilePage({ username }: ProfilePageProps) {
+  const { user: currentUser } = useUser(); // User đang đăng nhập
+  const [profileUser, setProfileUser] = useState<User | null>(null); // User đang xem profile
   const [posts, setPosts] = useState<Post[]>([]);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -32,16 +39,46 @@ export function ProfilePage() {
     if (node) observer.current.observe(node);
   }, [loading, hasMore]);
 
+  // Fetch profile user data
   useEffect(() => {
-    if (!user?.username) {
+    const fetchProfileUser = async () => {
+      try {
+        if (username) {
+          // Nếu có username từ URL thì fetch profile của user đó
+          const userData = await UserService.getUserProfile(username);
+          setProfileUser(userData);
+        } else if (currentUser) {
+          // Không có username thì dùng current user (trang profile cá nhân)
+          setProfileUser(currentUser);
+        }
+      } catch (error) {
+        console.error("ProfilePage: Fetch user profile failed", error);
+      }
+    };
+    
+    fetchProfileUser();
+  }, [username, currentUser]);
+
+  // Fetch posts
+  useEffect(() => {
+    const targetUsername = profileUser?.username;
+    if (!targetUsername) {
       return;
     }
 
     const fetchPosts = async () => {
       setLoading(true);
       try {
-        const response = await PostService.getPagedPostsOfUser(page, limit, user.username);
-        setPosts(prev => [...prev, ...response.content]);
+        const response = await PostService.getPagedPostsOfUser(page, limit, targetUsername);
+        
+        // Filter duplicate posts
+        setPosts(prev => {
+          const newPosts = response.content.filter(
+            newPost => !prev.some(existingPost => existingPost.id === newPost.id)
+          );
+          return [...prev, ...newPosts];
+        });
+        
         setHasMore(page + 1 < response.info.totalPages);
       } catch (error) {
         console.error("ProfilePage: Fetch posts failed", error);
@@ -50,7 +87,17 @@ export function ProfilePage() {
       }
     }
     fetchPosts();
-  }, [page, user?.username])
+  }, [page, profileUser?.username]);
+
+  // Reset posts khi chuyển user
+  useEffect(() => {
+    setPosts([]);
+    setPage(0);
+    setHasMore(true);
+  }, [profileUser?.username]);
+
+  const user = profileUser; // Alias for easier refactoring
+  const isOwnProfile = currentUser?.username === profileUser?.username; // Check if viewing own profile
 
   if (!user) {
     return (
@@ -77,14 +124,24 @@ export function ProfilePage() {
         <div className="flex-1">
           <div className="flex items-center gap-4 mb-5">
             <h1 className="text-xl font-normal">{ user.fullName ||user.username}</h1>
-            <Button 
-              variant="secondary" 
-              size="sm" 
-              className="px-4"
-              onClick={() => window.location.href = '/profile/edit'}
-            >
-              Chỉnh sửa hồ sơ
-            </Button>
+            {isOwnProfile ? (
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                className="px-4"
+                onClick={() => window.location.href = '/profile/edit'}
+              >
+                Chỉnh sửa hồ sơ
+              </Button>
+            ) : (
+              <Button 
+                variant="default" 
+                size="sm" 
+                className="px-4"
+              >
+                Theo dõi
+              </Button>
+            )}
           </div>
 
           <div className="flex gap-8 mb-5">

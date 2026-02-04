@@ -14,7 +14,7 @@ export class UserService {
   }
 
   static async getUserProfile(username: string): Promise<User> {
-    const response = await api.get(`/users/username/${username}`);
+    const response = await api.get(`/users/search/username/${username}`);
     return response.data;
   }
 
