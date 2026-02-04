@@ -6,6 +6,7 @@ import { cookies } from 'next/headers';
 import { User } from '@/features/user/models/user';
 import { ClientSidebar } from '@/components/layout/client/client-sidebar';
 import { redirect } from 'next/navigation';
+import { serverBackendUrl } from '@/shared/constants/server-environment';
 
 export default async function ClientLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
@@ -21,7 +22,7 @@ export default async function ClientLayout({ children }: { children: ReactNode }
   let user : User | null = null;
 
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api" }/auth/profile`, {
+    const res = await fetch(`${serverBackendUrl}/auth/profile`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
