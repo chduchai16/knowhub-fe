@@ -5,6 +5,7 @@ import { AdminFooter } from "@/components/layout/admin/admin-footer";
 import { UserProvider } from "@/shared/hooks/use-user";
 import { cookies } from "next/headers";
 import { AdminHeader } from "@/components/layout/admin/admin-header";
+import { serverBackendUrl } from "@/shared/constants/server-environment";
 
 export default async function Layout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
@@ -15,7 +16,7 @@ export default async function Layout({ children }: { children: ReactNode }) {
   let user = null;
 
   if (token) {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api" }/auth/profile`, {
+    const res = await fetch(`${serverBackendUrl}/auth/profile`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

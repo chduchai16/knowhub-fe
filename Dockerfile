@@ -2,9 +2,6 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 
-ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-
 COPY package.json package-lock.json* ./
 RUN npm ci
 
@@ -33,9 +30,14 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Copy entrypoint script để inject runtime env
+COPY --chown=nextjs:nodejs entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 USER nextjs
 
 EXPOSE 3000
 ENV PORT=3000
 
-CMD ["node", "server.js"]
+# Sử dụng entrypoint để inject NEXT_PUBLIC_API_URL tại runtime
+CMD ["/app/entrypoint.sh"]
