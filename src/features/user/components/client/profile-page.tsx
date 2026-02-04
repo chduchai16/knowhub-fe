@@ -5,20 +5,34 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avat
 import { Button } from '@/shared/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { Grid3x3, Bookmark, UserSquare, Camera, Settings } from 'lucide-react';
-import { useEffect , useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Post } from '@/features/post/models/post';
 import { PostService } from '@/features/post/services/post-service';
 import { PostItem } from '@/features/post/components/shared/post-item';
 
 export function ProfilePage() {
   const { user } = useUser();
-  const [posts , setPosts] = useState<Post[]>([]);
-  const [page , setPage] = useState(1);
-  const [limit , setLimit] = useState(16);
-  const [Loading , setLoading] = useState(false);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const limit = 12;
+
+  const observer = useRef<IntersectionObserver | null>(null);
+  const lastPostRef = useCallback((node: HTMLDivElement | null) => {
+    if (loading) return;
+    if (observer.current) observer.current.disconnect();
+
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prevPage => prevPage + 1);
+      }
+    });
+
+    if (node) observer.current.observe(node);
+  }, [loading, hasMore]);
 
   useEffect(() => {
-    // Chỉ gọi API khi đã có thông tin user
     if (!user?.username) {
       return;
     }
@@ -26,8 +40,9 @@ export function ProfilePage() {
     const fetchPosts = async () => {
       setLoading(true);
       try {
-        const response = await PostService.getPagedPostsOfUser(page -1 , limit , user.username);
-        setPosts(response.content);
+        const response = await PostService.getPagedPostsOfUser(page, limit, user.username);
+        setPosts(prev => [...prev, ...response.content]);
+        setHasMore(page + 1 < response.info.totalPages);
       } catch (error) {
         console.error("ProfilePage: Fetch posts failed", error);
       } finally {
@@ -142,11 +157,7 @@ export function ProfilePage() {
 
         {/* Posts Tab */}
         <TabsContent value="posts" className="mt-8">
-          {Loading ? (
-            <div className="flex justify-center py-20">
-              <p className="text-muted-foreground">Đang tải bài viết...</p>
-            </div>
-          ) : posts.length === 0 ? (
+          {posts.length === 0 && !loading ? (
             <div className="flex flex-col items-center justify-center py-16">
               <div className="w-16 h-16 rounded-full border-2 border-black flex items-center justify-center mb-4">
                 <Camera className="w-8 h-8" />
@@ -160,12 +171,36 @@ export function ProfilePage() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-1 md:gap-4">
-              {/* danh sách post */}
-              {posts.map((post) => (
-                <PostItem key={post.id} post={post} />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-3 gap-1 md:gap-4">
+                {/* danh sách post */}
+                {posts.map((post, index) => {
+                  // Gán ref cho element cuối cùng
+                  if (posts.length === index + 1) {
+                    return (
+                      <div key={post.id} ref={lastPostRef}>
+                        <PostItem post={post} />
+                      </div>
+                    );
+                  }
+                  return <PostItem key={post.id} post={post} />;
+                })}
+              </div>
+
+              {/* Loading indicator */}
+              {loading && (
+                <div className="flex justify-center py-8">
+                  <p className="text-muted-foreground">Đang tải thêm...</p>
+                </div>
+              )}
+
+              {/* End message */}
+              {!hasMore && posts.length > 0 && (
+                <div className="flex justify-center py-8">
+                  <p className="text-muted-foreground">Bạn đã xem hết bài viết</p>
+                </div>
+              )}
+            </>
           )}
         </TabsContent>
 
