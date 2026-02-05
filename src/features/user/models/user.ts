@@ -17,4 +17,5 @@ export interface User {
     createdAt? : string | null ;
     updatedAt ?: string | null ;
     password?: string | null ;
+    isFollowing?: boolean ;
 }

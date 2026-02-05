@@ -23,6 +23,8 @@ export function ProfilePage({ username }: ProfilePageProps) {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [loadingFollow, setLoadingFollow] = useState(false);
+  const [loadingUnFollow, setLoadingUnFollow] = useState(false);
   const limit = 12;
 
   const observer = useRef<IntersectionObserver | null>(null);
@@ -39,16 +41,16 @@ export function ProfilePage({ username }: ProfilePageProps) {
     if (node) observer.current.observe(node);
   }, [loading, hasMore]);
 
-  // Fetch profile user data
+  // lấy thông tin 
   useEffect(() => {
     const fetchProfileUser = async () => {
       try {
         if (username) {
-          // Nếu có username từ URL thì fetch profile của user đó
+          // nếu có username từ URL thì lấy thông tin profile của user đó
           const userData = await UserService.getUserProfile(username);
           setProfileUser(userData);
         } else if (currentUser) {
-          // Không có username thì dùng current user (trang profile cá nhân)
+          // không có username thì dùng current user (trang profile cá nhân)
           setProfileUser(currentUser);
         }
       } catch (error) {
@@ -59,7 +61,7 @@ export function ProfilePage({ username }: ProfilePageProps) {
     fetchProfileUser();
   }, [username, currentUser]);
 
-  // Fetch posts
+  // lấy danh sách bài viết
   useEffect(() => {
     const targetUsername = profileUser?.username;
     if (!targetUsername) {
@@ -71,7 +73,6 @@ export function ProfilePage({ username }: ProfilePageProps) {
       try {
         const response = await PostService.getPagedPostsOfUser(page, limit, targetUsername);
         
-        // Filter duplicate posts
         setPosts(prev => {
           const newPosts = response.content.filter(
             newPost => !prev.some(existingPost => existingPost.id === newPost.id)
@@ -80,8 +81,6 @@ export function ProfilePage({ username }: ProfilePageProps) {
         });
         
         setHasMore(page + 1 < response.info.totalPages);
-      } catch (error) {
-        console.error("ProfilePage: Fetch posts failed", error);
       } finally {
         setLoading(false);
       }
@@ -89,15 +88,46 @@ export function ProfilePage({ username }: ProfilePageProps) {
     fetchPosts();
   }, [page, profileUser?.username]);
 
-  // Reset posts khi chuyển user
+  const handleFollow = async () => {
+    try {
+      setLoadingFollow(true);
+      await UserService.followUser(profileUser?.id!);
+      // cập nhật lại số lượng follower và trạng thái follow
+      setProfileUser(prev => prev ? { 
+        ...prev, 
+        followerQuantity: (prev.followerQuantity || 0) + 1,
+        isFollowing: true
+      } : prev);
+    } 
+    finally { 
+      setLoadingFollow(false);
+    }
+  }
+
+  const handleUnFollow = async () => {
+    try {
+      setLoadingUnFollow(true);
+      await UserService.unfollowUser(profileUser?.id!);
+      // cập nhật lại số lượng follower và trạng thái follow
+      setProfileUser(prev => prev ? { 
+        ...prev, 
+        followerQuantity: (prev.followerQuantity || 0) - 1,
+        isFollowing: false
+      } : prev);
+    } finally { 
+      setLoadingUnFollow(false);
+    }
+  }
+
+  // reset posts khi chuyển user
   useEffect(() => {
     setPosts([]);
     setPage(0);
     setHasMore(true);
   }, [profileUser?.username]);
 
-  const user = profileUser; // Alias for easier refactoring
-  const isOwnProfile = currentUser?.username === profileUser?.username; // Check if viewing own profile
+  const user = profileUser;
+  const isOwnProfile = currentUser?.username === profileUser?.username;
 
   if (!user) {
     return (
@@ -133,13 +163,25 @@ export function ProfilePage({ username }: ProfilePageProps) {
               >
                 Chỉnh sửa hồ sơ
               </Button>
-            ) : (
+            ) : profileUser?.isFollowing ? (
               <Button 
-                variant="default" 
-                size="sm" 
+                variant="outline"
+                size="sm"
                 className="px-4"
+                onClick={handleUnFollow}
+                disabled={loadingUnFollow}
               >
-                Theo dõi
+                {loadingUnFollow ? 'Đang bỏ theo dõi...' : 'Hủy theo dõi'} 
+              </Button>
+            ) : (
+              <Button
+                variant="default"
+                size="sm"
+                className="px-4"
+                onClick={handleFollow}
+                disabled={loadingFollow}
+              >
+                {loadingFollow ? 'Đang theo dõi...' : 'Theo dõi'}
               </Button>
             )}
           </div>
@@ -188,7 +230,7 @@ export function ProfilePage({ username }: ProfilePageProps) {
           <div key={story.name} className="flex flex-col items-center gap-1 flex-shrink-0">
             <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${story.color} flex items-center justify-center cursor-pointer hover:scale-105 transition-transform p-0.5`}>
               <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
-                <span className="text-2xl">📸</span>
+                <span className="text-2xl">x</span>
               </div>
             </div>
             <span className="text-xs">{story.name}</span>

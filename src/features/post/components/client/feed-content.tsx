@@ -1,5 +1,6 @@
 'use client'
 
+import Link from "next/link";
 import { Post } from "../../models/post";
 import { Heart, MessageCircle, Share2 } from "lucide-react";
 import { getRelativeTime } from "@/shared/utils";
@@ -26,7 +27,9 @@ export function FeedContent({ post }: FeedContentProps) {
           )}
         </div>
         <div>
-          <p className="font-semibold">{post.username || 'User'}</p>
+          <Link href={`/profile/${post.username}`} className="font-semibold hover:underline">
+            {post.username || 'User'}
+          </Link>
           <p className="text-sm text-gray-500">{getRelativeTime(post.createdAt)}</p>
         </div>
       </div>
