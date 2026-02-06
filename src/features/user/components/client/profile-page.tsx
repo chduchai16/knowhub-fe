@@ -5,37 +5,129 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avat
 import { Button } from '@/shared/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { Grid3x3, Bookmark, UserSquare, Camera, Settings } from 'lucide-react';
-import { useEffect , useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Post } from '@/features/post/models/post';
 import { PostService } from '@/features/post/services/post-service';
 import { PostItem } from '@/features/post/components/shared/post-item';
+import { User } from '../../models/user';
+import { UserService } from '../../services/user-service';
 
-export function ProfilePage() {
-  const { user } = useUser();
-  const [posts , setPosts] = useState<Post[]>([]);
-  const [page , setPage] = useState(1);
-  const [limit , setLimit] = useState(16);
-  const [Loading , setLoading] = useState(false);
+interface ProfilePageProps {
+  username?: string; // Username từ URL params
+}
 
+export function ProfilePage({ username }: ProfilePageProps) {
+  const { user: currentUser } = useUser(); // User đang đăng nhập
+  const [profileUser, setProfileUser] = useState<User | null>(null); // User đang xem profile
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [loadingFollow, setLoadingFollow] = useState(false);
+  const [loadingUnFollow, setLoadingUnFollow] = useState(false);
+  const limit = 12;
+
+  const observer = useRef<IntersectionObserver | null>(null);
+  const lastPostRef = useCallback((node: HTMLDivElement | null) => {
+    if (loading) return;
+    if (observer.current) observer.current.disconnect();
+
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prevPage => prevPage + 1);
+      }
+    });
+
+    if (node) observer.current.observe(node);
+  }, [loading, hasMore]);
+
+  // lấy thông tin 
   useEffect(() => {
-    // Chỉ gọi API khi đã có thông tin user
-    if (!user?.username) {
+    const fetchProfileUser = async () => {
+      try {
+        if (username) {
+          // nếu có username từ URL thì lấy thông tin profile của user đó
+          const userData = await UserService.getUserProfile(username);
+          setProfileUser(userData);
+        } else if (currentUser) {
+          // không có username thì dùng current user (trang profile cá nhân)
+          setProfileUser(currentUser);
+        }
+      } catch (error) {
+        console.error("ProfilePage: Fetch user profile failed", error);
+      }
+    };
+    
+    fetchProfileUser();
+  }, [username, currentUser]);
+
+  // lấy danh sách bài viết
+  useEffect(() => {
+    const targetUsername = profileUser?.username;
+    if (!targetUsername) {
       return;
     }
 
     const fetchPosts = async () => {
       setLoading(true);
       try {
-        const response = await PostService.getPagedPostsOfUser(page -1 , limit , user.username);
-        setPosts(response.content);
-      } catch (error) {
-        console.error("ProfilePage: Fetch posts failed", error);
+        const response = await PostService.getPagedPostsOfUser(page, limit, targetUsername);
+        
+        setPosts(prev => {
+          const newPosts = response.content.filter(
+            newPost => !prev.some(existingPost => existingPost.id === newPost.id)
+          );
+          return [...prev, ...newPosts];
+        });
+        
+        setHasMore(page + 1 < response.info.totalPages);
       } finally {
         setLoading(false);
       }
     }
     fetchPosts();
-  }, [page, user?.username])
+  }, [page, profileUser?.username]);
+
+  const handleFollow = async () => {
+    try {
+      setLoadingFollow(true);
+      await UserService.followUser(profileUser?.id!);
+      // cập nhật lại số lượng follower và trạng thái follow
+      setProfileUser(prev => prev ? { 
+        ...prev, 
+        followerQuantity: (prev.followerQuantity || 0) + 1,
+        isFollowing: true
+      } : prev);
+    } 
+    finally { 
+      setLoadingFollow(false);
+    }
+  }
+
+  const handleUnFollow = async () => {
+    try {
+      setLoadingUnFollow(true);
+      await UserService.unfollowUser(profileUser?.id!);
+      // cập nhật lại số lượng follower và trạng thái follow
+      setProfileUser(prev => prev ? { 
+        ...prev, 
+        followerQuantity: (prev.followerQuantity || 0) - 1,
+        isFollowing: false
+      } : prev);
+    } finally { 
+      setLoadingUnFollow(false);
+    }
+  }
+
+  // reset posts khi chuyển user
+  useEffect(() => {
+    setPosts([]);
+    setPage(0);
+    setHasMore(true);
+  }, [profileUser?.username]);
+
+  const user = profileUser;
+  const isOwnProfile = currentUser?.username === profileUser?.username;
 
   if (!user) {
     return (
@@ -62,14 +154,36 @@ export function ProfilePage() {
         <div className="flex-1">
           <div className="flex items-center gap-4 mb-5">
             <h1 className="text-xl font-normal">{ user.fullName ||user.username}</h1>
-            <Button 
-              variant="secondary" 
-              size="sm" 
-              className="px-4"
-              onClick={() => window.location.href = '/profile/edit'}
-            >
-              Chỉnh sửa hồ sơ
-            </Button>
+            {isOwnProfile ? (
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                className="px-4"
+                onClick={() => window.location.href = '/profile/edit'}
+              >
+                Chỉnh sửa hồ sơ
+              </Button>
+            ) : profileUser?.isFollowing ? (
+              <Button 
+                variant="outline"
+                size="sm"
+                className="px-4"
+                onClick={handleUnFollow}
+                disabled={loadingUnFollow}
+              >
+                {loadingUnFollow ? 'Đang bỏ theo dõi...' : 'Hủy theo dõi'} 
+              </Button>
+            ) : (
+              <Button
+                variant="default"
+                size="sm"
+                className="px-4"
+                onClick={handleFollow}
+                disabled={loadingFollow}
+              >
+                {loadingFollow ? 'Đang theo dõi...' : 'Theo dõi'}
+              </Button>
+            )}
           </div>
 
           <div className="flex gap-8 mb-5">
@@ -116,7 +230,7 @@ export function ProfilePage() {
           <div key={story.name} className="flex flex-col items-center gap-1 flex-shrink-0">
             <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${story.color} flex items-center justify-center cursor-pointer hover:scale-105 transition-transform p-0.5`}>
               <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
-                <span className="text-2xl">📸</span>
+                <span className="text-2xl">x</span>
               </div>
             </div>
             <span className="text-xs">{story.name}</span>
@@ -142,11 +256,7 @@ export function ProfilePage() {
 
         {/* Posts Tab */}
         <TabsContent value="posts" className="mt-8">
-          {Loading ? (
-            <div className="flex justify-center py-20">
-              <p className="text-muted-foreground">Đang tải bài viết...</p>
-            </div>
-          ) : posts.length === 0 ? (
+          {posts.length === 0 && !loading ? (
             <div className="flex flex-col items-center justify-center py-16">
               <div className="w-16 h-16 rounded-full border-2 border-black flex items-center justify-center mb-4">
                 <Camera className="w-8 h-8" />
@@ -160,12 +270,36 @@ export function ProfilePage() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-1 md:gap-4">
-              {/* danh sách post */}
-              {posts.map((post) => (
-                <PostItem key={post.id} post={post} />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-3 gap-1 md:gap-4">
+                {/* danh sách post */}
+                {posts.map((post, index) => {
+                  // Gán ref cho element cuối cùng
+                  if (posts.length === index + 1) {
+                    return (
+                      <div key={post.id} ref={lastPostRef}>
+                        <PostItem post={post} />
+                      </div>
+                    );
+                  }
+                  return <PostItem key={post.id} post={post} />;
+                })}
+              </div>
+
+              {/* Loading indicator */}
+              {loading && (
+                <div className="flex justify-center py-8">
+                  <p className="text-muted-foreground">Đang tải thêm...</p>
+                </div>
+              )}
+
+              {/* End message */}
+              {!hasMore && posts.length > 0 && (
+                <div className="flex justify-center py-8">
+                  <p className="text-muted-foreground">Bạn đã xem hết bài viết</p>
+                </div>
+              )}
+            </>
           )}
         </TabsContent>
 

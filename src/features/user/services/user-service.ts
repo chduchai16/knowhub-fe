@@ -14,7 +14,7 @@ export class UserService {
   }
 
   static async getUserProfile(username: string): Promise<User> {
-    const response = await api.get(`/users/username/${username}`);
+    const response = await api.get(`/users/search/username/${username}`);
     return response.data;
   }
 
@@ -28,12 +28,14 @@ export class UserService {
     return response.data;
   }
 
-  static async followUser(userId: number): Promise<void> {
-    await api.post(`/users/${userId}/follow`);
+  static async followUser(userId: number): Promise<number> {
+    const response = await api.post(`/users/follow/${userId}`);
+    return response.data;
   }
 
-  static async unfollowUser(userId: number): Promise<void> {
-    await api.delete(`/users/${userId}/follow`);
+  static async unfollowUser(userId: number): Promise<number> {
+    const response = await api.delete(`/users/unfollow/${userId}`);
+    return response.data;
   }
 
   static async updateProfile(user: Partial<User>): Promise<User> {

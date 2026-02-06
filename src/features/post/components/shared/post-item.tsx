@@ -27,11 +27,11 @@ export function PostItem({ post }: { post: Post }) {
             <div className="flex gap-6 text-white font-semibold">
               <div className="flex items-center gap-1.5">
                 <Heart className="w-6 h-6 fill-current" />
-                <span>0</span>
+                <span>{post.likeQuantity || 0}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <MessageCircle className="w-6 h-6 fill-current" />
-                <span>0</span>
+                <span>{post.commentQuantity || 0}</span>
               </div>
             </div>
           </div>
