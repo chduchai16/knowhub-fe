@@ -54,8 +54,17 @@ export function FeedPage() {
     fetchPosts();
   }, [page]);
 
+  // callback cập nhật like 
+  const handleLikeChange = (postId: number, isLiked: boolean, likeQuantity: number, postLikeId?: number) => {
+    setPosts(prev => prev.map(post => 
+      post.id === postId 
+        ? { ...post, isLiked, likeQuantity, postLikeId }
+        : post
+    ));
+  };
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-lg mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Bảng tin</h1>
       </div>
@@ -65,9 +74,9 @@ export function FeedPage() {
         {posts && posts.length > 0 ? (
           posts.map((post, index) => {
             if (posts.length === index + 1) {
-              return <div key={post.id} ref={lastPostRef}><FeedContent post={post} /></div>;
+              return <div key={post.id} ref={lastPostRef}><FeedContent post={post} onLikeChange={handleLikeChange} /></div>;
             }
-            return <FeedContent key={post.id} post={post} />;
+            return <FeedContent key={post.id} post={post} onLikeChange={handleLikeChange} />;
           })
         ) : (
           !loading && <div className="text-center py-8 text-gray-500">Chưa có bài viết nào</div>

@@ -37,7 +37,7 @@ export function PostPopup(
                 </div>
 
                 {hasImage && (
-                    <div className="flex-1 flex items-center justify-center bg-white overflow-hidden">
+                    <div className="flex-1 flex items-center justify-center bg-white overflow-hidden aspect-square">
                         <img
                             src={post.medias![0].url}
                             alt=""
@@ -48,7 +48,7 @@ export function PostPopup(
             </div>
             
             <div className="w-1/2 border-l flex flex-col">
-                <div className="p-4 border-b">
+                <div className="p-4 border-b flex items-center min-h-[72px]">
                     <h3 className="font-semibold">Bình luận</h3>
                 </div>
 

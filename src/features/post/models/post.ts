@@ -14,4 +14,10 @@ export interface Post {
     mediaIds? : number[] ;
     createdAt ?: string ;
     updatedAt ?: string ;
+
+    isLiked ?: boolean ;
+    postLikeId ?: number ;
+    likeQuantity ?: number ;
+    shareQuantity ?: number ;
+    commentQuantity ?: number ;
 }
