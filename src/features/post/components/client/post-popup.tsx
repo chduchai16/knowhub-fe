@@ -1,8 +1,7 @@
 'use client'
 import { Post } from "@/features/post/models/post";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { SendHorizonal, X } from "lucide-react";
-import { getRelativeTime } from "@/shared/utils";
 import { CommentService } from "@/features/comment/services/comment-service";
 import { Comment } from "@/features/comment/models/comment";
 import { PostComment } from "@/features/comment/components/client/post-comment";
@@ -16,8 +15,19 @@ export function PostPopup(
     const [loadingComments, setLoadingComments] = useState(true);
     const [newCommentContent, setNewCommentContent] = useState("");
     const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
+    const [expandedCommentIds, setExpandedCommentIds] = useState<Set<number>>(new Set());
+    const [loadingCommentReplies, setLoadingCommentReplies] = useState<Set<number>>(new Set());
+    
+    // Pagination states
+    const [rootCommentsPage, setRootCommentsPage] = useState(0);
+    const [rootCommentsHasMore, setRootCommentsHasMore] = useState(true);
+    const [loadingMoreRoot, setLoadingMoreRoot] = useState(false);
+    const [repliesPaginationMap, setRepliesPaginationMap] = useState<Map<number, {page: number, hasMore: boolean, loading: boolean}>>(new Map());
+    
+    const inputRef = useRef<HTMLInputElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-    // gọi api lấy comment
+    // gọi api lấy comment (page 0)
     useEffect(() => {
         const fetchComments = async () => {
             if (!post.id) return;
@@ -25,6 +35,7 @@ export function PostPopup(
                 setLoadingComments(true);
                 const response = await CommentService.getCommentsByPostId(post.id);
                 setComments(response.content || []);
+                setRootCommentsHasMore((response.info?.totalPages ?? 1) > 1);
             } finally {
                 setLoadingComments(false);
             }
@@ -32,17 +43,120 @@ export function PostPopup(
         fetchComments();
     }, [post.id]);
 
+    // Load thêm root comments (infinite scroll)
+    const loadMoreRootComments = async () => {
+        if (!post.id || loadingMoreRoot || !rootCommentsHasMore) return;
+        
+        try {
+            setLoadingMoreRoot(true);
+            const nextPage = rootCommentsPage + 1;
+            const response = await CommentService.getCommentsByPostId(post.id, nextPage);
+            
+            setComments(prev => [...prev, ...(response.content || [])]);
+            setRootCommentsPage(nextPage);
+            setRootCommentsHasMore((response.info?.totalPages ?? 1) > nextPage + 1);
+        } catch (error) {
+            console.error('Error loading more root comments:', error);
+        } finally {
+            setLoadingMoreRoot(false);
+        }
+    };
+
+    // Detect infinite scroll
+    useEffect(() => {
+        const container = scrollContainerRef.current;
+        if (!container) return;
+
+        const handleScroll = () => {
+            const { scrollTop, scrollHeight, clientHeight } = container;
+            // Khi scroll đến 80% dưới
+            if (scrollHeight - scrollTop - clientHeight < 200 && !loadingMoreRoot && rootCommentsHasMore) {
+                loadMoreRootComments();
+            }
+        };
+
+        container.addEventListener('scroll', handleScroll);
+        return () => container.removeEventListener('scroll', handleScroll);
+    }, [loadingMoreRoot, rootCommentsHasMore]);
+
+    // focus vào input khi bấm reply
+    useEffect(() => {
+        if (replyingTo && inputRef.current) {
+            inputRef.current.focus();
+        }
+    }, [replyingTo]);
+
+    // fetch replies khi expand comment
+    const handleExpandReplies = async (commentId: number) => {
+        if (expandedCommentIds.has(commentId)) return;
+        
+        try {
+            setLoadingCommentReplies(prev => new Set([...prev, commentId]));
+            const response = await CommentService.getRepliesByCommentId(commentId, 0);
+            
+            // merge replies vào comments list
+            setComments(prev => [...prev, ...(response.content || [])]);
+            
+            // mark comment as expanded
+            setExpandedCommentIds(prev => new Set([...prev, commentId]));
+            
+            // track pagination cho replies
+            setRepliesPaginationMap(prev => new Map([...prev, [commentId, {
+                page: 0,
+                hasMore: (response.info?.totalPages ?? 1) > 1,
+                loading: false
+            }]]));
+        } catch (error) {
+            console.error('Error fetching replies:', error);
+        } finally {
+            setLoadingCommentReplies(prev => {
+                const newSet = new Set([...prev]);
+                newSet.delete(commentId);
+                return newSet;
+            });
+        }
+    };
+
+    // Load thêm replies cho một comment
+    const loadMoreReplies = async (commentId: number) => {
+        const pagination = repliesPaginationMap.get(commentId);
+        if (!pagination || !pagination.hasMore || pagination.loading) return;
+
+        try {
+            const newMap = new Map(repliesPaginationMap);
+            const newPagination = {...pagination, loading: true};
+            newMap.set(commentId, newPagination);
+            setRepliesPaginationMap(newMap);
+
+            const nextPage = pagination.page + 1;
+            const response = await CommentService.getRepliesByCommentId(commentId, nextPage);
+            
+            setComments(prev => [...prev, ...(response.content || [])]);
+            
+            const updatedMap = new Map(repliesPaginationMap);
+            updatedMap.set(commentId, {
+                page: nextPage,
+                hasMore: (response.info?.totalPages ?? 1) > nextPage + 1,
+                loading: false
+            });
+            setRepliesPaginationMap(updatedMap);
+        } catch (error) {
+            console.error('Error loading more replies:', error);
+        }
+    };
+
     // xây dựng lại cây comment để render
     const { rootComments, repliesMap } = useMemo(() => {
         const roots = comments.filter(c => !c.parentId);
         const replies = new Map<number, Comment[]>();
 
         comments.forEach(c => {
-            if (c.parentId && typeof c.parentId === 'number') {
-                if (!replies.has(c.parentId)) {
-                    replies.set(c.parentId, []);
+            // Chỉ lấy direct replies của root comments (dùng rootId)
+            if (c.rootId && typeof c.rootId === 'number') {
+                if (!replies.has(c.rootId)) {
+                    replies.set(c.rootId, []);
                 }
-                replies.get(c.parentId)!.push(c);
+                replies.get(c.rootId)!.push(c);
             }
         });
 
@@ -53,10 +167,23 @@ export function PostPopup(
     const handleCreateComment = async () => {
         if (!post.id || !newCommentContent.trim()) return;
         try {
+            // tìm root id
+            let rootId: number | null = null;
+            if (replyingTo) {
+                if (replyingTo.parentId) {
+                    // sử dụng rootId (nếu có) hoặc parentId
+                    rootId = replyingTo.rootId ?? replyingTo.parentId;
+                } else {
+                    // sử dụng id của root
+                    rootId = replyingTo.id ?? null;
+                }
+            }
+
             const newComment = await CommentService.createComment({
                 postId: post.id,
                 content: newCommentContent,
-                parentId: replyingTo?.id || null
+                parentId: replyingTo?.id ?? undefined,
+                rootId: rootId
             });
             setComments(prev => [newComment, ...prev]);
             setNewCommentContent("");
@@ -96,7 +223,7 @@ export function PostPopup(
                     <h3 className="font-semibold">Bình luận</h3>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4">
+                <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4">
                     {/* hiển thị content của bài viết */}
                     <div className="mb-6 pb-4 border-b">
                         <PostComment
@@ -109,8 +236,8 @@ export function PostPopup(
                                 content: post.content,
                                 parentId: null,
                                 createdAt: post.createdAt,
-                                likeQuantity: 0,
-                                replyQuantity: 0
+                                replyQuantity: undefined,
+                                rootId: null
                             } as Comment}
                         />
                     </div>
@@ -122,26 +249,50 @@ export function PostPopup(
                         <div className="text-center py-8 text-gray-500 text-sm">Chưa có bình luận nào</div>
                     ) : (
                         <div className="space-y-4">
-                            {rootComments.map((rootComment) => (
-                                <div key={`root-${rootComment.id}`}>
+                            {rootComments.map((rootComment, index) => (
+                                <div key={`root-${index}-${rootComment.id ?? `temp-${index}`}`}>
                                     {/* root Comment */}
                                     <PostComment 
                                         comment={rootComment} 
                                         onReplyClick={setReplyingTo}
                                     />
 
+                                    {/* Xem thêm replies button */}
+                                    {rootComment.id && !expandedCommentIds.has(rootComment.id) && rootComment.replyQuantity !== undefined && rootComment.replyQuantity > 0 && (
+                                        <button
+                                            onClick={() => handleExpandReplies(rootComment.id!)}
+                                            disabled={loadingCommentReplies.has(rootComment.id)}
+                                            className="ml-8 mt-2 text-xs text-gray-500 hover:text-blue-500 disabled:opacity-50 transition-colors"
+                                        >
+                                            {loadingCommentReplies.has(rootComment.id) ? 'Đang tải...' : `Xem thêm ${rootComment.replyQuantity} trả lời`}
+                                        </button>
+                                    )}
+
                                     {/* replies tương ứng với comment đó*/}
                                     {rootComment.id && repliesMap.has(rootComment.id) && repliesMap.get(rootComment.id)!.length > 0 && (
-                                        <div className="ml-8 mt-3 space-y-3 border-l-2 border-gray-200 pl-4">
-                                            {repliesMap.get(rootComment.id!)!.map((reply) => (
-                                                <div key={`reply-${reply.id}`}>
-                                                    <PostComment 
-                                                        comment={reply} 
-                                                        isReply={true}
-                                                        onReplyClick={setReplyingTo}
-                                                    />
-                                                </div>
-                                            ))}
+                                        <div>
+                                            <div className="ml-8 mt-3 space-y-3 border-l-2 border-gray-200 pl-4">
+                                                {repliesMap.get(rootComment.id!)!.map((reply, idx) => (
+                                                    <div key={`reply-${rootComment.id}-${reply.id ?? `temp-${idx}`}`}>
+                                                        <PostComment 
+                                                            comment={reply} 
+                                                            isReply={true}
+                                                            onReplyClick={setReplyingTo}
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {/* Xem thêm replies button cho replies */}
+                                            {rootComment.id && repliesPaginationMap.get(rootComment.id)?.hasMore && (
+                                                <button
+                                                    onClick={() => loadMoreReplies(rootComment.id!)}
+                                                    disabled={repliesPaginationMap.get(rootComment.id)?.loading ?? false}
+                                                    className="ml-16 mt-2 text-xs text-gray-500 hover:text-blue-500 disabled:opacity-50 transition-colors"
+                                                >
+                                                    {repliesPaginationMap.get(rootComment.id)?.loading ? 'Đang tải...' : 'Xem thêm trả lời'}
+                                                </button>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -164,11 +315,13 @@ export function PostPopup(
                             </div>
                         )}
                         <input
+                            ref={inputRef}
                             type="text"
                             placeholder={replyingTo ? "Viết trả lời..." : "Thêm bình luận vào đây"}
                             className="flex-1 px-3 py-1 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                             value={newCommentContent}
                             onChange={(e) => setNewCommentContent(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && handleCreateComment()}
                         />
                         <SendHorizonal 
                             onClick={handleCreateComment}

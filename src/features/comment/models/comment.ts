@@ -8,4 +8,6 @@ export interface Comment {
     content: string ;
     createdAt?: string ;
     updatedAt?: string ;
+    rootId : number | null ;
+    replyQuantity?: number ;
 }

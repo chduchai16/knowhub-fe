@@ -8,7 +8,6 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from "@/shared/components/ui/dialog";
 import { PostPopup } from "./post-popup";
 import { PostLikeService } from "../../services/post-like-service";
-import { toast } from "sonner";
 import { AvatarImage } from "@/shared/components/avatar-image";
 
 interface FeedContentProps {
@@ -73,22 +72,16 @@ export function FeedContent({ post, onLikeChange }: FeedContentProps) {
       </div>
 
       {hasImage && (
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogTrigger asChild>
-            <div className="w-full cursor-pointer">
-              <img
-                src={post.medias![0].url}
-                alt=""
-                className="w-full h-auto object-cover"
-              />
-            </div>
-          </DialogTrigger>
-          <DialogContent className="!max-w-[80vw] !w-screen">
-            <DialogTitle>Chi tiết bài viết</DialogTitle>
-            <DialogDescription className="sr-only">Xem chi tiết bài viết với hình ảnh và bình luận</DialogDescription>
-            <PostPopup post={post} />
-          </DialogContent>
-        </Dialog>
+        <div 
+          className="w-full cursor-pointer"
+          onClick={() => setIsModalOpen(true)}
+        >
+          <img
+            src={post.medias![0].url}
+            alt=""
+            className="w-full h-auto object-cover"
+          />
+        </div>
       )}
 
       <div className="p-6 flex gap-3 text-sm text-gray-500 pt-4 border-t border-gray-300">
@@ -104,24 +97,27 @@ export function FeedContent({ post, onLikeChange }: FeedContentProps) {
           )}
           <span>{localLikeQuantity}</span>
         </button>
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogTrigger asChild>
-            <button className="flex items-center gap-2 cursor-pointer">
-              <MessageCircle className="w-5 h-5 hover:scale-125 transition-transform" />
-              <span>{post.commentQuantity || 0}</span>
-            </button>
-          </DialogTrigger>
-          <DialogContent className="!max-w-[80vw] !w-screen">
-            <DialogTitle>Chi tiết bài viết</DialogTitle>
-            <DialogDescription className="sr-only">Xem chi tiết bài viết với hình ảnh và bình luận</DialogDescription>
-            <PostPopup post={post} />
-          </DialogContent>
-        </Dialog>
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center gap-2 cursor-pointer"
+        >
+          <MessageCircle className="w-5 h-5 hover:scale-125 transition-transform" />
+          <span>{post.commentQuantity || 0}</span>
+        </button>
         <button className="flex items-center gap-2 ">
           <Share2 className="w-5 h-5 hover:scale-125 transition-transform" />
           <span>{post.shareQuantity || 0}</span>
         </button>
       </div>
+
+      {/* Single Dialog for both triggers */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="!max-w-[80vw] !w-screen">
+          <DialogTitle>Chi tiết bài viết</DialogTitle>
+          <DialogDescription className="sr-only">Xem chi tiết bài viết với hình ảnh và bình luận</DialogDescription>
+          <PostPopup post={post} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

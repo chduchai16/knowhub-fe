@@ -2,7 +2,6 @@ import { Comment } from "../../models/comment";
 import { getRelativeTime } from "@/shared/utils";
 import { AvatarImage } from "@/shared/components/avatar-image";
 import Link from "next/link";
-import { MessageCircle } from "lucide-react";
 
 export function PostComment(
     { 
