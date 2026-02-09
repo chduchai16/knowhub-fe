@@ -5,11 +5,11 @@ import { Post } from "../../models/post";
 import { Heart, MessageCircle, Share2 } from "lucide-react";
 import { getRelativeTime } from "@/shared/utils";
 import { useState } from "react";
-import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/shared/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from "@/shared/components/ui/dialog";
 import { PostPopup } from "./post-popup";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { PostLikeService } from "../../services/post-like-service";
 import { toast } from "sonner";
+import { AvatarImage } from "@/shared/components/avatar-image";
 
 interface FeedContentProps {
   post: Post;
@@ -58,17 +58,9 @@ export function FeedContent({ post, onLikeChange }: FeedContentProps) {
     <div className="bg-white rounded-lg border border-gray-300 overflow-hidden">
       <div className="p-6 space-y-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold">
-            {post.userAvatarUrl ? (
-              <img
-                src={post.userAvatarUrl}
-                alt="User Avatar"
-                className="w-full h-full rounded-full object-cover"
-              />
-            ) : (
-              post.username?.charAt(0).toUpperCase() || 'U'
-            )}
-          </div>
+          <Link href={`/profile/${post.username}`} className="hover:opacity-80 transition-opacity">
+            <AvatarImage src={post.userAvatarUrl} alt={post.username} size="lg" />
+          </Link>
           <div>
             <Link href={`/profile/${post.username}`} className="font-semibold hover:underline">
               {post.username || 'User'}
@@ -92,9 +84,8 @@ export function FeedContent({ post, onLikeChange }: FeedContentProps) {
             </div>
           </DialogTrigger>
           <DialogContent className="!max-w-[80vw] !w-screen">
-            <VisuallyHidden>
-              <DialogTitle>Chi tiết bài viết</DialogTitle>
-            </VisuallyHidden>
+            <DialogTitle>Chi tiết bài viết</DialogTitle>
+            <DialogDescription className="sr-only">Xem chi tiết bài viết với hình ảnh và bình luận</DialogDescription>
             <PostPopup post={post} />
           </DialogContent>
         </Dialog>
@@ -121,9 +112,8 @@ export function FeedContent({ post, onLikeChange }: FeedContentProps) {
             </button>
           </DialogTrigger>
           <DialogContent className="!max-w-[80vw] !w-screen">
-            <VisuallyHidden>
-              <DialogTitle>Chi tiết bài viết</DialogTitle>
-            </VisuallyHidden>
+            <DialogTitle>Chi tiết bài viết</DialogTitle>
+            <DialogDescription className="sr-only">Xem chi tiết bài viết với hình ảnh và bình luận</DialogDescription>
             <PostPopup post={post} />
           </DialogContent>
         </Dialog>
