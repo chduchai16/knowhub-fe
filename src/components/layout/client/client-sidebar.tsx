@@ -27,6 +27,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar';
 import { useUser } from '@/shared/hooks/use-user';
 import { SearchSheet } from '@/features/user/components/client/search-sheet';
+import { NotificationsSheet } from '@/features/notification/components/client/notifications-sheet';
+import { NotificationIcon } from '@/features/notification/components/client/notification-icon';
 
 const navigationItems = [
   {
@@ -113,7 +115,7 @@ export function ClientSidebar() {
       <SidebarContent>
         <SidebarGroup className={isCollapsed ? 'px-0' : 'px-2'}>
           <SidebarGroupContent>
-            <SidebarMenu className={`${isCollapsed ? '!gap-2 items-center' : '!gap-3'}`}>
+            <SidebarMenu className={`${isCollapsed ? '!gap-2 items-center' : '!gap-3'}`} suppressHydrationWarning>
               {navigationItems.map((item) => {
                 const isActive = pathname === item.url || pathname?.startsWith(item.url + '/');
                 
@@ -122,10 +124,23 @@ export function ClientSidebar() {
                     <SidebarMenuItem key={item.title} className={`w-full flex justify-center ${isCollapsed ? 'my-1.5' : ''}`}>
                       <SearchSheet>
                         <SidebarMenuButton className={`text-base font-medium cursor-pointer transition-colors hover:bg-muted bg-transparent ${isCollapsed ? 'justify-center !w-14 !px-3 !py-3' : 'py-5 px-3'}`}>
-                          <item.icon className="!w-7 !h-7 flex-shrink-0" />
+                          <item.icon className="!w-6 !h-6 flex-shrink-0" />
                           {!isCollapsed && <span className="ml-3">{item.title}</span>}
                         </SidebarMenuButton>
                       </SearchSheet>
+                    </SidebarMenuItem>
+                  );
+                }
+
+                if (item.title === 'Thông báo') {
+                  return (
+                    <SidebarMenuItem key={item.title} className={`w-full flex justify-center ${isCollapsed ? 'my-1.5' : ''}`}>
+                      <NotificationsSheet showBadge={false}>
+                        <SidebarMenuButton className={`text-base font-medium cursor-pointer transition-colors hover:bg-muted bg-transparent ${isCollapsed ? 'justify-center !w-14 !px-3 !py-3' : 'py-5 px-3'}`}>
+                          <NotificationIcon isCollapsed={isCollapsed} className="!w-6 !h-6 flex-shrink-0" />
+                          {!isCollapsed && <span className="ml-3">{item.title}</span>}
+                        </SidebarMenuButton>
+                      </NotificationsSheet>
                     </SidebarMenuItem>
                   );
                 }
@@ -137,7 +152,7 @@ export function ClientSidebar() {
                       className={`text-base transition-colors hover:bg-muted bg-transparent ${isActive ? 'font-bold' : 'font-medium'} ${isCollapsed ? 'justify-center !w-14 !px-3 !py-3' : 'py-5 px-3'}`}
                     >
                       <Link href={item.url}>
-                        <item.icon className={`!w-7 !h-7 flex-shrink-0 ${isActive ? 'stroke-[2.5]' : ''}`} />
+                        <item.icon className={`!w-6 !h-6 flex-shrink-0 ${isActive ? 'stroke-[2.5]' : ''}`} />
                         {!isCollapsed && <span className="ml-3">{item.title}</span>}
                       </Link>
                     </SidebarMenuButton>
