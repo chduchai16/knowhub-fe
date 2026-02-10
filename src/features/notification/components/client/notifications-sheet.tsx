@@ -11,18 +11,9 @@ import {
 } from '@/shared/components/ui/sheet';
 import { AvatarImage } from '@/shared/components/avatar-image';
 import Link from 'next/link';
-
-interface Notification {
-  id: number;
-  type: 'like' | 'comment' | 'follow' | 'reply';
-  userId: number;
-  username: string;
-  userAvatarUrl?: string;
-  postId?: number;
-  message: string;
-  createdAt: string;
-  isRead: boolean;
-}
+import { NotificationService } from '../../services/notification-service';
+import { Notification } from '../../models/notification';
+import { getRelativeTime } from '@/shared/utils/time';
 
 interface NotificationsContextType {
   unreadCount: number;
@@ -47,139 +38,103 @@ interface NotificationsSheetProps {
 export function NotificationsSheet({ children, showBadge = false }: NotificationsSheetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [page, setPage] = useState(0);
+  const limit = 20;
 
   useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        setNotifications([
-          {
-            id: 1,
-            type: 'like',
-            userId: 1,
-            username: 'user1',
-            userAvatarUrl: '/assets/default-avatar.jpg',
-            postId: 1,
-            message: 'đã thích bài viết của bạn',
-            createdAt: new Date(Date.now() - 3600000).toISOString(),
-            isRead: false,
-          },
-          {
-            id: 2,
-            type: 'comment',
-            userId: 2,
-            username: 'user2',
-            userAvatarUrl: '/assets/default-avatar.jpg',
-            postId: 2,
-            message: 'đã bình luận bài viết của bạn',
-            createdAt: new Date(Date.now() - 7200000).toISOString(),
-            isRead: false,
-          },
-          {
-            id: 3,
-            type: 'follow',
-            userId: 3,
-            username: 'user3',
-            userAvatarUrl: '/assets/default-avatar.jpg',
-            message: 'đã bắt đầu theo dõi bạn',
-            createdAt: new Date(Date.now() - 86400000).toISOString(),
-            isRead: true,
-          },
-        ]);
-      } catch (error) {
-        console.error('Error fetching notifications:', error);
-      }
+    const fetchUnreadCount = async () => {
+      const countResponse = await NotificationService.getUnreadCount();
+      const count = countResponse || 0;
+      setUnreadCount(typeof count === 'number' ? count : 0);
     };
 
-    fetchNotifications();
+    fetchUnreadCount();
   }, []);
 
-  // Refresh notifications when sheet opens
   useEffect(() => {
     if (!isOpen) return;
 
     const fetchNotifications = async () => {
-      setIsLoading(true);
       try {
-        setNotifications([
-          {
-            id: 1,
-            type: 'like',
-            userId: 1,
-            username: 'user1',
-            userAvatarUrl: '/assets/default-avatar.jpg',
-            postId: 1,
-            message: 'đã thích bài viết của bạn',
-            createdAt: new Date(Date.now() - 3600000).toISOString(),
-            isRead: false,
-          },
-          {
-            id: 2,
-            type: 'comment',
-            userId: 2,
-            username: 'user2',
-            userAvatarUrl: '/assets/default-avatar.jpg',
-            postId: 2,
-            message: 'đã bình luận bài viết của bạn',
-            createdAt: new Date(Date.now() - 7200000).toISOString(),
-            isRead: false,
-          },
-          {
-            id: 3,
-            type: 'follow',
-            userId: 3,
-            username: 'user3',
-            userAvatarUrl: '/assets/default-avatar.jpg',
-            message: 'đã bắt đầu theo dõi bạn',
-            createdAt: new Date(Date.now() - 86400000).toISOString(),
-            isRead: true,
-          },
-        ]);
-      } catch (error) {
-        console.error('Error fetching notifications:', error);
+        setIsLoading(true);
+        
+        const apiResponse = await NotificationService.getNotifications(page, limit);
+        
+        const notificationsData = (apiResponse?.content || []) as Notification[];
+        setNotifications(notificationsData);
+        
+        const countResponse = await NotificationService.getUnreadCount();
+        
+        const count = countResponse || 0;
+        setUnreadCount(typeof count === 'number' ? count : 0);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchNotifications();
-  }, [isOpen]);
+  }, [isOpen, page]);
 
-  const getRelativeTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  const handleNotificationClick = async (notification: Notification) => {
+    try {
+      if (!notification.isRead) {
+        await NotificationService.markAsRead(notification.id);
+        setNotifications(prev =>
+          prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n)
+        );
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
 
-    if (seconds < 60) return 'Vừa xong';
-    if (seconds < 3600) return `${Math.floor(seconds / 60)} phút trước`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)} giờ trước`;
-    if (seconds < 604800) return `${Math.floor(seconds / 86400)} ngày trước`;
-    return date.toLocaleDateString('vi-VN');
-  };
-
-  const handleNotificationClick = (notification: Notification) => {
-    if (notification.type === 'follow') {
-      window.location.href = `/profile/${notification.username}`;
-    } else if (notification.postId) {
-      console.log('Open post:', notification.postId);
+      if (notification.type === 'FOLLOW') {
+        window.location.href = `/profile/${notification.actorUsername}`;
+      } else if (notification.type === 'REPLY' && notification.postId) {
+        window.location.href = `/post/${notification.postId}`;
+      } else if (notification.referenceId) {
+        window.location.href = `/post/${notification.referenceId}`;
+      }
+    } finally {
+      setIsOpen(false);
     }
-    setIsOpen(false);
   };
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCountFromNotifications = notifications.filter(n => !n.isRead).length || unreadCount;
 
   return (
-    <NotificationsContext.Provider value={{ unreadCount, notifications }}>
+    <NotificationsContext.Provider value={{ unreadCount: unreadCountFromNotifications, notifications }}>
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetTrigger asChild>
           {children}
         </SheetTrigger>
         <SheetContent side="left" className="w-[400px] sm:w-[540px]">
         <SheetHeader>
-          <SheetTitle>Thông báo</SheetTitle>
-          <SheetDescription>
-            Xem tất cả thông báo của bạn
-          </SheetDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <SheetTitle>Thông báo</SheetTitle>
+              <SheetDescription>
+                Xem tất cả thông báo của bạn
+              </SheetDescription>
+            </div>
+            {unreadCountFromNotifications > 0 && (
+              <button
+                onClick={async () => {
+                  try {
+                    await NotificationService.markAllAsRead();
+                    setNotifications(prev =>
+                      prev.map(n => ({ ...n, isRead: true }))
+                    );
+                    setUnreadCount(0);
+                  } catch (error) {
+                    console.error('Error marking all as read:', error);
+                  }
+                }}
+                className="text-xs text-blue-600 hover:text-blue-800 font-semibold"
+              >
+                Đánh dấu tất cả đã đọc
+              </button>
+            )}
+          </div>
         </SheetHeader>
 
         <div className="mt-6 h-[calc(100vh-120px)] overflow-y-auto">
@@ -212,24 +167,24 @@ export function NotificationsSheet({ children, showBadge = false }: Notification
                     !notification.isRead ? 'bg-blue-50' : ''
                   }`}
                 >
-                  <Link href={`/profile/${notification.username}`} onClick={e => e.stopPropagation()} className="flex-shrink-0 hover:opacity-80">
+                  <Link href={`/profile/${notification.actorUsername}`} onClick={e => e.stopPropagation()} className="flex-shrink-0 hover:opacity-80">
                     <AvatarImage 
-                      src={notification.userAvatarUrl} 
-                      alt={notification.username} 
+                      src={notification.actorAvatarUrl} 
+                      alt={notification.actorUsername} 
                       size="md" 
                     />
                   </Link>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm">
                       <Link 
-                        href={`/profile/${notification.username}`} 
+                        href={`/profile/${notification.actorUsername}`} 
                         onClick={e => e.stopPropagation()}
                         className="font-semibold hover:underline"
                       >
-                        {notification.username}
+                        {notification.actorUsername}
                       </Link>
                       {' '}
-                      {notification.message}
+                      {notification.content}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
                       {getRelativeTime(notification.createdAt)}

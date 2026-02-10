@@ -2,6 +2,8 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 import {
   Form,
@@ -18,7 +20,10 @@ import { registerSchema, RegisterSchema } from "../schemas/register-schema";
 import { AuthService } from "../services/auth.service";
 
 export default function RegisterForm() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  
   const form = useForm<RegisterSchema>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -29,8 +34,21 @@ export default function RegisterForm() {
     mode: "onBlur",
   });
 
-  const onSubmit = (values: RegisterSchema) => {
-    AuthService.register(values);
+  const onSubmit = async (values: RegisterSchema) => {
+    try {
+      setIsLoading(true);
+      const response = await AuthService.register(values);
+      
+      if (response) {
+        toast.success("Đăng ký thành công! Vui lòng đăng nhập.");
+        router.push("/login");
+      }
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || "Đăng ký thất bại. Vui lòng thử lại.";
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -127,9 +145,9 @@ export default function RegisterForm() {
           <Button
             type="submit"
             className="w-full rounded-lg py-3 font-semibold text-white bg-blue-500 hover:bg-sky-700"
-            disabled={!form.formState.isValid}
+            disabled={!form.formState.isValid || isLoading}
           >
-            Tạo tài khoản →
+            {isLoading ? "Đang tạo tài khoản..." : "Tạo tài khoản →"}
           </Button>
         </form>
       </Form>
