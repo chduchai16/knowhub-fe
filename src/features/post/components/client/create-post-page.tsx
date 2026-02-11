@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/components/ui/button';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
-import { ArrowLeft, Image as ImageIcon, X, Loader2, Globe, Lock, Users } from 'lucide-react';
+import { ArrowLeft, Image as ImageIcon, X, Loader2, Globe, Lock, Users, Film } from 'lucide-react';
 import Link from 'next/link';
 import { ImageCropper } from '@/shared/components/common/image-cropper';
 import { MediaService } from '@/shared/services/media.service';
@@ -19,6 +19,7 @@ export function CreatePostPage() {
   const [image, setImage] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [tempImage, setTempImage] = useState('');
+  const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [loadingUploadImage , setLoadingUploadImage] = useState(false);
@@ -60,23 +61,58 @@ export function CreatePostPage() {
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const result = event.target?.result;
-        if (typeof result === 'string') {
-          setTempImage(result);
-          e.target.value = '';
-        }
-      };
-      reader.readAsDataURL(file);
+      const isImage = file.type.startsWith('image/');
+      const isVideo = file.type.startsWith('video/');
+
+      if (isImage) {
+        // Ảnh: hiển thị ImageCropper
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const result = event.target?.result;
+          if (typeof result === 'string') {
+            setTempImage(result);
+            setMediaType('image');
+            e.target.value = '';
+          }
+        };
+        reader.readAsDataURL(file);
+      } else if (isVideo) {
+        handleVideoUpload(file);
+        e.target.value = '';
+      } else {
+        toast.error('Chỉ hỗ trợ ảnh hoặc video');
+      }
     }
   }
 
-  // gỡ ảnh đã chọn
+  const handleVideoUpload = async (file: File) => {
+    setLoadingUploadImage(true);
+    try {
+      const response: any = await MediaService.uploadTempImage(file);
+      if (response) {
+        setMediaId(response);
+      }
+      
+      // Tạo preview URL cho video
+      const videoPreviewUrl = URL.createObjectURL(file);
+      setImage(videoPreviewUrl);
+      setImageFile(file);
+      setMediaType('video');
+      toast.success('Tải video lên thành công');
+    } catch (error) {
+      toast.error('Lỗi khi tải video lên');
+      setMediaType(null);
+    } finally {
+      setLoadingUploadImage(false);
+    }
+  }
+
+  // gỡ ảnh/video đã chọn
   const handleRemoveImage = () => {
     setImage('');
     setImageFile(null);
     setMediaId(null);
+    setMediaType(null);
     if (fileInputRef.current) {
         fileInputRef.current.value = '';
     }
@@ -85,6 +121,7 @@ export function CreatePostPage() {
   const handleCropComplete = async (croppedBlob: Blob, previewUrl: string) => {
     // Đóng modal ngay lập tức
     setTempImage('');
+    setMediaType(null);
     setLoadingUploadImage(true);
     // chuyển thanh file
     const file = new File([croppedBlob], 'post-image.jpg', { type: 'image/jpeg' });
@@ -118,22 +155,41 @@ export function CreatePostPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className='flex gap-4'>
-                <div className="group relative flex items-center gap-2 min-h-[200px] min-w-[200px] border border-gray-200 rounded-md justify-center overflow-hidden">
+                <div className="group relative flex items-center gap-2 min-h-[200px] min-w-[200px] border border-gray-200 rounded-md justify-center overflow-hidden bg-gray-50">
                     {!image && !loadingUploadImage && (
                         <Button type="button" variant="outline" size="sm" onClick={openFileExplorer}>
                             <ImageIcon className="w-4 h-4 mr-2" />
-                            Thêm ảnh
+                            Thêm ảnh/video
                         </Button>
                     )}
                     {loadingUploadImage && (
                         <div className="flex flex-col items-center gap-2">
                             <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-                            <span className="text-sm text-gray-500">Đang tải ảnh lên...</span>
+                            <span className="text-sm text-gray-500">Đang tải lên...</span>
                         </div>
                     )}
-                    {image && !loadingUploadImage && (
+                    {image && !loadingUploadImage && mediaType === 'image' && (
                         <>
                             <img src={image} alt="Preview" className="max-w-full max-h-[200px] flex-1 object-cover" />
+                            <Button 
+                                type="button" 
+                                variant="secondary" 
+                                size="icon" 
+                                className="absolute top-1 right-1 rounded-full w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-200/80 hover:bg-gray-300 text-gray-600 shadow-sm"
+                                onClick={handleRemoveImage}
+                            >
+                                <X className="w-3 h-3" />
+                            </Button>
+                        </>
+                    )}
+                    {image && !loadingUploadImage && mediaType === 'video' && (
+                        <>
+                            <video 
+                                src={image} 
+                                className="max-w-full max-h-[200px] flex-1 object-cover" 
+                                controls
+                                autoPlay={false}
+                            />
                             <Button 
                                 type="button" 
                                 variant="secondary" 
@@ -155,7 +211,7 @@ export function CreatePostPage() {
                 />
               <input
                 type="file"
-                accept='image/*'
+                accept='image/*,video/*'
                 ref={fileInputRef}
                 onChange={onFileChange}
                 className="hidden"
@@ -214,11 +270,14 @@ export function CreatePostPage() {
         </CardContent>
       </Card>
 
-      {tempImage && (
+      {tempImage && mediaType === 'image' && (
         <ImageCropper
           image={tempImage}
           onCropComplete={handleCropComplete}
-          onCancel={() => setTempImage('')}
+          onCancel={() => {
+            setTempImage('');
+            setMediaType(null);
+          }}
         />
       )}
     </div>

@@ -42,7 +42,8 @@ export function FeedContent({ post, onLikeChange, onDelete, onUpdate }: FeedCont
   const { user: currentUser } = useUser();
   const isAuthor = currentUser?.username === post.username || currentUser?.id === post.userId;
   
-  const hasImage = post.medias && post.medias.length > 0 && post.medias[0]?.url;
+  const hasMedia = post.medias && post.medias.length > 0 && post.medias[0]?.url;
+  const mediaType = post.medias?.[0]?.type?.toUpperCase();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
@@ -181,16 +182,25 @@ export function FeedContent({ post, onLikeChange, onDelete, onUpdate }: FeedCont
         <p className="text-gray-700">{post.content}</p>
       </div>
 
-      {hasImage && (
+      {hasMedia && (
         <div 
           className="w-full cursor-pointer"
           onClick={() => setIsModalOpen(true)}
         >
-          <img
-            src={post.medias![0].url}
-            alt=""
-            className="w-full h-auto object-cover"
-          />
+          {mediaType === 'IMAGE' ? (
+            <img
+              src={post.medias![0].url}
+              alt=""
+              className="w-full h-auto max-h-[400px] object-cover"
+            />
+          ) : mediaType === 'VIDEO' ? (
+            <video
+              src={post.medias![0].url}
+              className="w-full h-auto max-h-[400px] object-cover"
+              controls
+              autoPlay={false}
+            />
+          ) : null}
         </div>
       )}
 
