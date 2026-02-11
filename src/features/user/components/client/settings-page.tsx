@@ -1,12 +1,16 @@
 'use client';
 
 import { Button } from '@/shared/components/ui/button';
-import { LogOut } from 'lucide-react';
+import { LogOut, ChevronRight, Flag, ShieldCheck } from 'lucide-react';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useUser } from '@/shared/hooks/use-user';
 
 export function SettingsPage() {
   const router = useRouter();
+  const { user } = useUser();
+  const isAdmin = user?.roleName?.toUpperCase() === 'ADMIN';
 
   const handleLogout = () => {
     Cookies.remove('token');
@@ -60,6 +64,40 @@ export function SettingsPage() {
             </div>
           </div>
         </div>
+
+        <div className="bg-white rounded-lg border p-6">
+          <h2 className="font-semibold mb-4">Hỗ trợ & Báo cáo</h2>
+          <div className="space-y-1">
+            <Link 
+              href="/settings/reports" 
+              className="flex justify-between items-center py-3 px-2 hover:bg-gray-50 rounded-md transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Flag className="w-4 h-4 text-gray-500" />
+                <span className="text-sm">Báo cáo của tôi</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-400" />
+            </Link>
+          </div>
+        </div>
+
+        {isAdmin && (
+          <div className="bg-white rounded-lg border p-6 border-blue-100 bg-blue-50/10">
+            <h2 className="font-semibold mb-4 text-blue-700">Quản trị viên</h2>
+            <div className="space-y-1">
+              <Link 
+                href="/admin/dashboard" 
+                className="flex justify-between items-center py-3 px-2 hover:bg-blue-50 rounded-md transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <ShieldCheck className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm font-medium">Trang quản trị (Admin Dashboard)</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-blue-400" />
+              </Link>
+            </div>
+          </div>
+        )}
 
           <Button
             className="w-full"

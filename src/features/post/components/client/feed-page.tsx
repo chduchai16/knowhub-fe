@@ -63,6 +63,16 @@ export function FeedPage() {
     ));
   };
 
+  const handleDeletePost = (postId: number) => {
+    setPosts(prev => prev.filter(post => post.id !== postId));
+  };
+
+  const handleUpdatePost = (updatedPost: Post) => {
+    setPosts(prev => prev.map(post => 
+      post.id === updatedPost.id ? { ...post, ...updatedPost } : post
+    ));
+  };
+
   return (
     <div className="max-w-lg mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -74,9 +84,26 @@ export function FeedPage() {
         {posts && posts.length > 0 ? (
           posts.map((post, index) => {
             if (posts.length === index + 1) {
-              return <div key={post.id} ref={lastPostRef}><FeedContent post={post} onLikeChange={handleLikeChange} /></div>;
+              return (
+                <div key={post.id} ref={lastPostRef}>
+                  <FeedContent 
+                    post={post} 
+                    onLikeChange={handleLikeChange}
+                    onDelete={handleDeletePost}
+                    onUpdate={handleUpdatePost}
+                  />
+                </div>
+              );
             }
-            return <FeedContent key={post.id} post={post} onLikeChange={handleLikeChange} />;
+            return (
+              <FeedContent 
+                key={post.id} 
+                post={post} 
+                onLikeChange={handleLikeChange}
+                onDelete={handleDeletePost}
+                onUpdate={handleUpdatePost}
+              />
+            );
           })
         ) : (
           !loading && <div className="text-center py-8 text-gray-500">Chưa có bài viết nào</div>

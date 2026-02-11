@@ -1,18 +1,86 @@
 'use client'
 import { Post } from "@/features/post/models/post";
 import { useEffect, useState, useMemo, useRef } from "react";
-import { SendHorizonal, X } from "lucide-react";
+import { SendHorizonal, X, MoreHorizontal, Flag, Trash2, Globe, Lock, Users, Copy, Edit } from "lucide-react";
 import { CommentService } from "@/features/comment/services/comment-service";
 import { Comment } from "@/features/comment/models/comment";
 import { PostComment } from "@/features/comment/components/client/post-comment";
 import { AvatarImage } from "@/shared/components/avatar-image";
 import Link from "next/link";
+import { useUser } from "@/shared/hooks/use-user";
+import { 
+    DropdownMenu, 
+    DropdownMenuContent, 
+    DropdownMenuItem, 
+    DropdownMenuSeparator, 
+    DropdownMenuTrigger 
+} from "@/shared/components/ui/dropdown-menu";
+import { toast } from "sonner";
+import { PostService } from "../../services/post-service";
+import { ReportDialog } from "@/features/report/components/report-dialog";
+import { 
+    AlertDialog, 
+    AlertDialogAction, 
+    AlertDialogCancel, 
+    AlertDialogContent, 
+    AlertDialogDescription, 
+    AlertDialogFooter, 
+    AlertDialogHeader, 
+    AlertDialogTitle 
+} from "@/shared/components/ui/alert-dialog";
+import { useRouter } from "next/navigation";
 
 export function PostPopup(
    { post }: { post: Post }
 ) {
+    const { user: currentUser } = useUser();
+    const router = useRouter();
+    const isAuthor = currentUser?.username === post.username || currentUser?.id === post.userId;
+
     const [comments, setComments] = useState<Comment[]>([]);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [loadingComments, setLoadingComments] = useState(true);
+
+    const handleDelete = async () => {
+        if (!post.id) return;
+        try {
+            setIsDeleting(true);
+            await PostService.deletePost(post.id);
+            toast.success("Đã xóa bài viết thành công");
+            setIsDeleteDialogOpen(false);
+            window.location.reload(); // Cách nhanh nhất để cập nhật feed từ popup
+        } catch (error) {
+            toast.error("Không thể xóa bài viết. Vui lòng thử lại sau.");
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    const updatePrivacy = async (privacy: string) => {
+        if (!post.id) return;
+        try {
+            await PostService.updatePost(post.id, { ...post, privacy });
+            toast.success(`Đã đổi quyền riêng tư thành ${privacy}`);
+        } catch (error) {
+            toast.error("Không thể cập nhật quyền riêng tư");
+        }
+    };
+
+    const handleCopyLink = () => {
+        const url = `${window.location.origin}/post/${post.id}`;
+        navigator.clipboard.writeText(url);
+        toast.success("Đã sao chép liên kết");
+    };
+
+    const handleReport = () => {
+        setIsReportDialogOpen(true);
+    };
+
+    const handleDeleteComment = (commentId: number) => {
+        setComments(prev => prev.filter(c => c.id !== commentId));
+    };
     const [newCommentContent, setNewCommentContent] = useState("");
     const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
     const [expandedCommentIds, setExpandedCommentIds] = useState<Set<number>>(new Set());
@@ -198,13 +266,58 @@ export function PostPopup(
     return (
         <div className="flex h-[80vh] w-full">
             <div className="w-1/2 flex flex-col">
-                <div className="flex items-center gap-3 p-4 border-b">
-                    <Link href={`/profile/${post.username}`} className="hover:opacity-80 transition-opacity">
-                        <AvatarImage src={post.userAvatarUrl} alt={post.username} size="lg" />
-                    </Link>
-                    <Link href={`/profile/${post.username}`} className="hover:underline">
-                        <p className="font-semibold text-sm">{post.username || 'User'}</p>
-                    </Link>
+                <div className="flex items-center justify-between p-4 border-b">
+                    <div className="flex items-center gap-3">
+                        <Link href={`/profile/${post.username}`} className="hover:opacity-80 transition-opacity">
+                            <AvatarImage src={post.userAvatarUrl} alt={post.username} size="lg" />
+                        </Link>
+                        <Link href={`/profile/${post.username}`} className="hover:underline">
+                            <p className="font-semibold text-sm">{post.username || 'User'}</p>
+                        </Link>
+                    </div>
+
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                                <MoreHorizontal className="w-5 h-5 text-gray-500" />
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-52">
+                            {isAuthor ? (
+                                <>
+                                    <DropdownMenuItem className="gap-2 cursor-pointer">
+                                        <Edit className="w-4 h-4" /> Chỉnh sửa bài viết
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => updatePrivacy('PUBLIC')} className="gap-2 cursor-pointer">
+                                        <Globe className="w-4 h-4" /> Công khai
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => updatePrivacy('FRIENDS')} className="gap-2 cursor-pointer">
+                                        <Users className="w-4 h-4" /> Bạn bè
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => updatePrivacy('PRIVATE')} className="gap-2 cursor-pointer">
+                                        <Lock className="w-4 h-4" /> Chỉ mình tôi
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem 
+                                        onClick={() => setIsDeleteDialogOpen(true)}
+                                        className="gap-2 cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
+                                    >
+                                        <Trash2 className="w-4 h-4" /> Xóa bài viết
+                                    </DropdownMenuItem>
+                                </>
+                            ) : (
+                                <>
+                                    <DropdownMenuItem onClick={handleCopyLink} className="gap-2 cursor-pointer">
+                                        <Copy className="w-4 h-4" /> Sao chép liên kết
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={handleReport} className="gap-2 cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50">
+                                        <Flag className="w-4 h-4" /> Báo cáo vi phạm
+                                    </DropdownMenuItem>
+                                </>
+                            )}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
 
                 {hasImage && (
@@ -255,6 +368,7 @@ export function PostPopup(
                                     <PostComment 
                                         comment={rootComment} 
                                         onReplyClick={setReplyingTo}
+                                        onDelete={handleDeleteComment}
                                     />
 
                                     {/* Xem thêm replies button */}
@@ -278,6 +392,7 @@ export function PostPopup(
                                                             comment={reply} 
                                                             isReply={true}
                                                             onReplyClick={setReplyingTo}
+                                                            onDelete={handleDeleteComment}
                                                         />
                                                     </div>
                                                 ))}
@@ -330,6 +445,37 @@ export function PostPopup(
                     </div>
                 </div>
             </div>
+
+            {/* AlertDialog xóa bài viết */}
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Bạn có chắc muốn xóa bài viết này?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Tất cả nội dung và bình luận của bài viết sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeleting}>Hủy</AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={handleDelete}
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                            disabled={isDeleting}
+                        >
+                            {isDeleting ? "Đang xóa..." : "Xác nhận xóa"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {post.id && (
+                <ReportDialog 
+                    isOpen={isReportDialogOpen}
+                    onOpenChange={setIsReportDialogOpen}
+                    targetId={post.id}
+                    targetType="post"
+                />
+            )}
         </div>
     )
 }
