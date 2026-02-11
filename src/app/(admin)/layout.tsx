@@ -11,7 +11,9 @@ export default async function Layout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
 
   const token = cookieStore.get("token")?.value;
-  const defaultOpen = cookieStore.get("sidebar_state")?.value === "true";
+  // Mặc định là true nếu cookie chưa tồn tại
+  const sidebarCookie = cookieStore.get("sidebar_state")?.value;
+  const defaultOpen = sidebarCookie === undefined ? true : sidebarCookie === "true";
 
   let user = null;
 

@@ -4,13 +4,20 @@ import { useUser } from '@/shared/hooks/use-user';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar';
 import { Button } from '@/shared/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
-import { Grid3x3, Bookmark, UserSquare, Camera, Settings } from 'lucide-react';
+import { Grid3x3, Bookmark, UserSquare, Camera, Settings, MoreHorizontal, Flag } from 'lucide-react';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Post } from '@/features/post/models/post';
 import { PostService } from '@/features/post/services/post-service';
 import { PostItem } from '@/features/post/components/shared/post-item';
 import { User } from '../../models/user';
 import { UserService } from '../../services/user-service';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from '@/shared/components/ui/dropdown-menu';
+import { ReportDialog } from '@/features/report/components/report-dialog';
 
 interface ProfilePageProps {
   username?: string; // Username từ URL params
@@ -25,6 +32,7 @@ export function ProfilePage({ username }: ProfilePageProps) {
   const [loading, setLoading] = useState(false);
   const [loadingFollow, setLoadingFollow] = useState(false);
   const [loadingUnFollow, setLoadingUnFollow] = useState(false);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const limit = 12;
 
   const observer = useRef<IntersectionObserver | null>(null);
@@ -163,26 +171,46 @@ export function ProfilePage({ username }: ProfilePageProps) {
               >
                 Chỉnh sửa hồ sơ
               </Button>
-            ) : profileUser?.isFollowing ? (
-              <Button 
-                variant="outline"
-                size="sm"
-                className="px-4"
-                onClick={handleUnFollow}
-                disabled={loadingUnFollow}
-              >
-                {loadingUnFollow ? 'Đang bỏ theo dõi...' : 'Hủy theo dõi'} 
-              </Button>
             ) : (
-              <Button
-                variant="default"
-                size="sm"
-                className="px-4"
-                onClick={handleFollow}
-                disabled={loadingFollow}
-              >
-                {loadingFollow ? 'Đang theo dõi...' : 'Theo dõi'}
-              </Button>
+              <div className="flex items-center gap-2">
+                {profileUser?.isFollowing ? (
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    className="px-4"
+                    onClick={handleUnFollow}
+                    disabled={loadingUnFollow}
+                  >
+                    {loadingUnFollow ? 'Đang bỏ theo dõi...' : 'Hủy theo dõi'} 
+                  </Button>
+                ) : (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="px-4"
+                    onClick={handleFollow}
+                    disabled={loadingFollow}
+                  >
+                    {loadingFollow ? 'Đang theo dõi...' : 'Theo dõi'}
+                  </Button>
+                )}
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-40">
+                    <DropdownMenuItem 
+                      onClick={() => setIsReportDialogOpen(true)}
+                      className="gap-2 text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+                    >
+                      <Flag className="h-4 w-4" /> Báo cáo người dùng
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             )}
           </div>
 
@@ -329,6 +357,15 @@ export function ProfilePage({ username }: ProfilePageProps) {
           </div>
         </TabsContent>
       </Tabs>
+
+      {user.id && (
+        <ReportDialog 
+          isOpen={isReportDialogOpen}
+          onOpenChange={setIsReportDialogOpen}
+          targetId={user.id}
+          targetType="USER"
+        />
+      )}
     </div>
   );
 }
