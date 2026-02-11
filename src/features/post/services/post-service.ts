@@ -58,4 +58,13 @@ export class PostService {
             throw error;
         }
     }
+
+    public static async getPostById (postId : number | string) : Promise<Post> {
+        try {
+            const response = await api.get(`/posts/${postId}`);
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    }
 }
