@@ -17,8 +17,13 @@ KnowHub là một nền tảng kết nối cộng đồng và chia sẻ kiến t
 ## Tính năng hiện tại
 
 - **Landing Page:** Thiết kế hiện đại theo phong cách Notion.
-- **Authentication:** Đăng nhập và đăng ký người dùng.
-- **Client Layout:** Giao diện sidebar phong cách Instagram.
+- **Authentication:** Đăng nhập và đăng ký người dùng với thông báo thành công.
+- **Client Layout:** Giao diện sidebar phong cách Instagram, hỗ trợ responsive hoàn chỉnh.
+- **Real-time Notifications:** 
+    - Nhận thông báo tức thời thông qua **Server-Sent Events (SSE)**.
+    - Hiển thị Toast thông báo (Sonner) kèm nút "Xem" nhanh.
+    - Tự động cập nhật số lượng thông báo chưa đọc.
+    - Điều hướng thông minh dựa trên loại thông báo (Follow -> Profile, Reply -> Post).
 - **Admin Panel:** Quản lý người dùng, bài viết, vai trò, quyền hạn.
 - **Tìm kiếm:** Sheet tìm kiếm người dùng real-time.
 - **Bảng tin (Feed):** Hiển thị các bài viết từ cộng đồng.
@@ -130,11 +135,18 @@ src/
     │   ├── page-response.ts
     │   ├── jwt-payload.ts
     │   └── user-action.ts
+    ├── sse/                     # Real-time Server-Sent Events logic
+    │   └── notification-sse.ts
     └── utils/                   # Utility functions
         ├── cn.ts
         ├── crop-image.ts
+        ├── time.ts
         └── index.ts
 ```
+
+## Ghi chú kỹ thuật
+
+- **Real-time Engine:** Sử dụng **SSE (Server-Sent Events)** để kết nối liên tục với Server khi user đã đăng nhập, giúp nhận dữ liệu thông báo mà không cần pooling.
 
 ### Feature-Based Architecture
 
