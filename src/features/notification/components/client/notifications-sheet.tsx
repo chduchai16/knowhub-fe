@@ -11,6 +11,7 @@ import {
 } from '@/shared/components/ui/sheet';
 import { AvatarImage } from '@/shared/components/avatar-image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { NotificationService } from '../../services/notification-service';
 import { Notification } from '../../models/notification';
 import { getRelativeTime } from '@/shared/utils/time';
@@ -38,6 +39,7 @@ interface NotificationsSheetProps {
 }
 
 export function NotificationsSheet({ children, showBadge = false }: NotificationsSheetProps) {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -55,13 +57,18 @@ export function NotificationsSheet({ children, showBadge = false }: Notification
         setUnreadCount(prev => Math.max(0, prev - 1));
       }
 
+      // Lấy username từ các field có thể có (đề phòng SSE khác API)
+      const username = notification.actorUsername || (notification as any).actor_username;
+
       if (notification.type === 'FOLLOW') {
-        window.location.href = `/profile/${notification.actorUsername}`;
+          router.push(`/profile/${username}`);
       } else if (notification.type === 'REPLY' && notification.postId) {
-        window.location.href = `/post/${notification.postId}`;
+        router.push(`/post/${notification.postId}`);
       } else if (notification.referenceId) {
-        window.location.href = `/post/${notification.referenceId}`;
+        router.push(`/post/${notification.referenceId}`);
       }
+    } catch (error) {
+      console.error("Error handling notification click:", error);
     } finally {
       setIsOpen(false);
     }
@@ -78,12 +85,13 @@ export function NotificationsSheet({ children, showBadge = false }: Notification
 
     // Kết nối SSE để nhận thông báo real-time
     const eventSource = connectNotificationSse((newNotification: Notification) => {
+      // Cập nhật state
       setNotifications((prev) => [newNotification, ...prev]);
       setUnreadCount((prev) => prev + 1);
       
       // Hiển thị toast khi có thông báo mới
-      toast.success(newNotification.content, {
-        description: newNotification.title,
+      toast.success(newNotification.title || "Thông báo mới", {
+        description: newNotification.content,
         action: {
           label: "Xem",
           onClick: () => handleNotificationClick(newNotification)
@@ -94,7 +102,7 @@ export function NotificationsSheet({ children, showBadge = false }: Notification
     return () => {
       eventSource.close();
     };
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -173,47 +181,49 @@ export function NotificationsSheet({ children, showBadge = false }: Notification
             )}
 
             {!isLoading &&
-              notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  onClick={() => handleNotificationClick(notification)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      handleNotificationClick(notification);
-                    }
-                  }}
-                  className={`w-full flex items-start gap-3 p-3 rounded-lg hover:bg-accent transition-colors text-left cursor-pointer ${
-                    !notification.isRead ? 'bg-blue-50' : ''
-                  }`}
-                >
-                  <Link href={`/profile/${notification.actorUsername}`} onClick={e => e.stopPropagation()} className="flex-shrink-0 hover:opacity-80">
-                    <AvatarImage 
-                      src={notification.actorAvatarUrl} 
-                      alt={notification.actorUsername} 
-                      size="md" 
-                    />
-                  </Link>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm">
-                      <Link 
-                        href={`/profile/${notification.actorUsername}`} 
-                        onClick={e => e.stopPropagation()}
-                        className="font-semibold hover:underline"
-                      >
-                        {notification.actorUsername}
-                      </Link>
-                      {' '}
-                      {notification.content}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {getRelativeTime(notification.createdAt)}
-                    </p>
+              notifications.map((notification) => {
+                const username = notification.actorUsername || (notification as any).actor_username;
+                return (
+                  <div
+                    key={notification.id}
+                    onClick={() => handleNotificationClick(notification)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        handleNotificationClick(notification);
+                      }
+                    }}
+                    className={`w-full flex items-start gap-3 p-3 rounded-lg hover:bg-accent transition-colors text-left cursor-pointer ${
+                      !notification.isRead ? 'bg-blue-50' : ''
+                    }`}
+                  >
+                    <Link href={`/profile/${username}`} onClick={e => e.stopPropagation()} className="flex-shrink-0 hover:opacity-80">
+                      <AvatarImage 
+                        src={notification.actorAvatarUrl} 
+                        alt={username} 
+                        size="md" 
+                      />
+                    </Link>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm">
+                        <Link 
+                          href={`/profile/${username}`} 
+                          onClick={e => e.stopPropagation()}
+                          className="font-semibold hover:underline"
+                        >
+                          {username}
+                        </Link>
+                        {' '}
+                        {notification.content}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {getRelativeTime(notification.createdAt)}
+                      </p>
+                    </div>
                   </div>
-                  
-                </div>
-              ))}
+                );
+              })}
           </div>
         </div>
       </SheetContent>
