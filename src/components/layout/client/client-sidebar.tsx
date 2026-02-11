@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -77,8 +78,61 @@ export function ClientSidebar() {
   const pathname = usePathname();
   const { user } = useUser();
   const { setOpen, state } = useSidebar();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const isCollapsed = state === 'collapsed';
+
+  if (!mounted) {
+    return (
+      <Sidebar collapsible="icon" className="transition-all duration-300 ease-in-out">
+        <SidebarHeader className={`border-b py-6 transition-all duration-300 ${isCollapsed ? 'px-0' : 'px-5'}`}>
+          <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
+            <div className="w-10 h-10 rounded-xl bg-blue-500 flex-shrink-0 flex items-center justify-center">
+               <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 text-white">
+                <Avatar className="w-full h-full bg-transparent">
+                    <AvatarImage
+                        src={'/assets/knowhub-logo.png'}
+                        alt="KnowHub Logo"
+                        className="object-contain p-1"
+                    />
+                    <AvatarFallback className="bg-transparent text-white font-bold text-xs">KH</AvatarFallback>
+                </Avatar>
+              </div>
+            </div>
+            {!isCollapsed && (
+              <span className="text-2xl whitespace-nowrap overflow-hidden transition-all duration-300" style={{ fontFamily: "var(--font-pacifico)" }}>
+                KnowHub
+              </span>
+            )}
+          </div>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarGroup className={isCollapsed ? 'px-0' : 'px-2'}>
+            <SidebarGroupContent>
+              <SidebarMenu className={isCollapsed ? '!gap-2 items-center' : '!gap-3'}>
+                {navigationItems.map((item) => (
+                  <SidebarMenuItem key={item.title} className={`w-full flex justify-center ${isCollapsed ? 'my-1.5' : ''}`}>
+                    <SidebarMenuButton className={`text-base font-medium transition-colors hover:bg-muted bg-transparent ${isCollapsed ? 'justify-center !w-14 !px-3 !py-3' : 'py-5 px-3'}`}>
+                      {item.title === 'Thông báo' ? (
+                        <Bell className="!w-6 !h-6 flex-shrink-0" />
+                      ) : (
+                        <item.icon className="!w-6 !h-6 flex-shrink-0" />
+                      )}
+                      {!isCollapsed && <span className="ml-3">{item.title}</span>}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+      </Sidebar>
+    );
+  }
 
   return (
     <Sidebar 

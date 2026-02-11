@@ -14,6 +14,8 @@ import Link from 'next/link';
 import { NotificationService } from '../../services/notification-service';
 import { Notification } from '../../models/notification';
 import { getRelativeTime } from '@/shared/utils/time';
+import { connectNotificationSse } from '@/shared/sse/notification-sse';
+import { toast } from 'sonner';
 
 interface NotificationsContextType {
   unreadCount: number;
@@ -43,6 +45,28 @@ export function NotificationsSheet({ children, showBadge = false }: Notification
   const [page, setPage] = useState(0);
   const limit = 20;
 
+  const handleNotificationClick = async (notification: Notification) => {
+    try {
+      if (!notification.isRead) {
+        await NotificationService.markAsRead(notification.id);
+        setNotifications(prev =>
+          prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n)
+        );
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+
+      if (notification.type === 'FOLLOW') {
+        window.location.href = `/profile/${notification.actorUsername}`;
+      } else if (notification.type === 'REPLY' && notification.postId) {
+        window.location.href = `/post/${notification.postId}`;
+      } else if (notification.referenceId) {
+        window.location.href = `/post/${notification.referenceId}`;
+      }
+    } finally {
+      setIsOpen(false);
+    }
+  };
+
   useEffect(() => {
     const fetchUnreadCount = async () => {
       const countResponse = await NotificationService.getUnreadCount();
@@ -51,6 +75,25 @@ export function NotificationsSheet({ children, showBadge = false }: Notification
     };
 
     fetchUnreadCount();
+
+    // Kết nối SSE để nhận thông báo real-time
+    const eventSource = connectNotificationSse((newNotification: Notification) => {
+      setNotifications((prev) => [newNotification, ...prev]);
+      setUnreadCount((prev) => prev + 1);
+      
+      // Hiển thị toast khi có thông báo mới
+      toast.success(newNotification.content, {
+        description: newNotification.title,
+        action: {
+          label: "Xem",
+          onClick: () => handleNotificationClick(newNotification)
+        },
+      });
+    });
+
+    return () => {
+      eventSource.close();
+    };
   }, []);
 
   useEffect(() => {
@@ -76,28 +119,6 @@ export function NotificationsSheet({ children, showBadge = false }: Notification
 
     fetchNotifications();
   }, [isOpen, page]);
-
-  const handleNotificationClick = async (notification: Notification) => {
-    try {
-      if (!notification.isRead) {
-        await NotificationService.markAsRead(notification.id);
-        setNotifications(prev =>
-          prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n)
-        );
-        setUnreadCount(prev => Math.max(0, prev - 1));
-      }
-
-      if (notification.type === 'FOLLOW') {
-        window.location.href = `/profile/${notification.actorUsername}`;
-      } else if (notification.type === 'REPLY' && notification.postId) {
-        window.location.href = `/post/${notification.postId}`;
-      } else if (notification.referenceId) {
-        window.location.href = `/post/${notification.referenceId}`;
-      }
-    } finally {
-      setIsOpen(false);
-    }
-  };
 
   const unreadCountFromNotifications = notifications.filter(n => !n.isRead).length || unreadCount;
 
