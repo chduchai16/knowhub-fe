@@ -3,15 +3,14 @@ import { Post } from "../models/post";
 import api from "@/shared/configs/axios.config";
 
 export class PostService {
-    
-    public static async getPagedPostsOfUser(page : number , limit : number , username : string) : Promise<PageResponse<Post>> {
+    static async getPagedPostsOfUser(page: number, limit: number, username: string): Promise<PageResponse<Post>> {
         try {
-            const response = await api.get('/posts' , {
-                params : {
-                    page : page,
-                    limit : limit,
-                    username : username
-                }
+            const response = await api.get("/posts", {
+                params: {
+                    page,
+                    limit,
+                    username,
+                },
             });
             return response.data;
         } catch (error) {
@@ -19,13 +18,14 @@ export class PostService {
         }
     }
 
-    public static async getNewFeeds (page : number , limit : number) : Promise<PageResponse<Post>> {
+    static async getPagedPosts(page: number, limit: number, keyword: string): Promise<PageResponse<Post>> {
         try {
-            const response = await api.get('/posts/feeds' , {
-                params : {
-                    page : page,
-                    limit : limit
-                }
+            const response = await api.get("/posts", {
+                params: {
+                    page,
+                    limit,
+                    keyword,
+                },
             });
             return response.data;
         } catch (error) {
@@ -33,16 +33,30 @@ export class PostService {
         }
     }
 
-    public static async createPost (post : Post) : Promise<Post> {
+    static async getNewFeeds(page: number, limit: number): Promise<PageResponse<Post>> {
         try {
-            const response = await api.post('/posts' , post);
+            const response = await api.get("/posts/feeds", {
+                params: {
+                    page,
+                    limit,
+                },
+            });
             return response.data;
         } catch (error) {
             throw error;
         }
     }
 
-    public static async deletePost (postId : number) : Promise<void> {
+    static async createPost(post: Post): Promise<Post> {
+        try {
+            const response = await api.post("/posts", post);
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    static async deletePost(postId: number): Promise<void> {
         try {
             await api.delete(`/posts/${postId}`);
         } catch (error) {
@@ -50,16 +64,16 @@ export class PostService {
         }
     }
 
-    public static async updatePost (postId : number , post : Post) : Promise<Post> {
+    static async updatePost(postId: number, post: Post): Promise<Post> {
         try {
-            const response = await api.put(`/posts/${postId}` , post);
+            const response = await api.put(`/posts/${postId}`, post);
             return response.data;
         } catch (error) {
             throw error;
         }
     }
 
-    public static async getPostById (postId : number | string) : Promise<Post> {
+    static async getPostById(postId: number | string): Promise<Post> {
         try {
             const response = await api.get(`/posts/${postId}`);
             return response.data;
