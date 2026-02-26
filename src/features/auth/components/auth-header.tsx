@@ -7,8 +7,8 @@ export function AuthHeader() {
             <div className="bg-blue-500 rounded-lg p-1">
                 <Avatar className="w-10 h-10">
                     <AvatarImage
-                        src={'/assets/knowhub-logo.png'}
-                        alt="KnowHub Logo"
+                        src={'/assets/logo-svg.svg'}
+                        alt="KnowHub"
                         className="w-full h-full object-contain"
                     />
                 </Avatar>

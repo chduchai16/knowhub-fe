@@ -23,9 +23,9 @@ export const metadata: Metadata = {
   title: "KnowHub",
   description: "Connet people",
   icons: {
-    icon: "/assets/knowhub-logo.png",
-    shortcut: "/assets/knowhub-logo.png",
-    apple: "/assets/knowhub-logo.png"
+    icon: "/assets/logo-svg.svg",
+    shortcut: "/assets/logo-svg.svg",
+    apple: "/assets/logo-svg.svg"
   }
 };
 
