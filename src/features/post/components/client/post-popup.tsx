@@ -261,7 +261,8 @@ export function PostPopup(
         }
     }
 
-    const hasImage = post.medias && post.medias.length > 0 && post.medias[0]?.url;
+    const hasMedia = post.medias && post.medias.length > 0 && post.medias[0]?.url;
+    const mediaType = post.medias?.[0]?.type?.toUpperCase();
 
     return (
         <div className="flex h-[80vh] w-full">
@@ -320,13 +321,22 @@ export function PostPopup(
                     </DropdownMenu>
                 </div>
 
-                {hasImage && (
+                {hasMedia && (
                     <div className="flex-1 flex items-center justify-center bg-white overflow-hidden aspect-square">
-                        <img
-                            src={post.medias![0].url}
-                            alt=""
-                            className="w-full h-full object-cover"
-                        />
+                        {mediaType === 'IMAGE' ? (
+                            <img
+                                src={post.medias![0].url}
+                                alt=""
+                                className="w-full h-full object-cover"
+                            />
+                        ) : mediaType === 'VIDEO' ? (
+                            <video
+                                src={post.medias![0].url}
+                                className="w-full h-full object-cover"
+                                controls
+                                autoPlay={false}
+                            />
+                        ) : null}
                     </div>
                 )}
             </div>

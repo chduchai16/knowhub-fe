@@ -248,10 +248,20 @@ export function PostDetailPage({ postId }: PostDetailPageProps) {
 
         {post.medias && post.medias.length > 0 && (
           <div className="mb-6 flex items-center justify-center bg-white rounded-lg overflow-hidden aspect-square">
-            <img
-              src={post.medias[0].url}
-              className="w-full h-full object-cover"
-            />
+            {post.medias[0].type?.toUpperCase() === 'IMAGE' ? (
+              <img
+                src={post.medias[0].url}
+                className="w-full h-full object-cover max-h-[400px]"
+                alt=""
+              />
+            ) : post.medias[0].type?.toUpperCase() === 'VIDEO' ? (
+              <video
+                src={post.medias[0].url}
+                className="w-full h-full object-cover max-h-[400px]"
+                controls
+                autoPlay={false}
+              />
+            ) : null}
           </div>
         )}
 

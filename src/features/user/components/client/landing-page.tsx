@@ -128,7 +128,7 @@ export default function EnhancedLandingPage() {
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-lg bg-blue-500 flex items-center justify-center">
-              <Image src="/assets/knowhub-logo.png" alt="Logo" width={40} height={40} />
+              <Image src="/assets/logo-svg.svg" alt="Logo" width={40} height={40} />
             </div>
             <h1 className="text-xl font-semibold text-gray-900">KnowHub</h1>
           </div>
@@ -441,7 +441,7 @@ export default function EnhancedLandingPage() {
             <div className="col-span-2">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center">
-                  <Image src="/assets/knowhub-logo.png" alt="Logo" width={25} height={25} />
+                  <Image src="/assets/logo-svg.svg" alt="Logo" width={25} height={25} />
                 </div>
                 <span className="text-xl font-semibold text-white">KnowHub</span>
               </div>

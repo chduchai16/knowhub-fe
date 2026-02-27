@@ -95,8 +95,8 @@ export function ClientSidebar() {
                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 text-white">
                 <Avatar className="w-full h-full bg-transparent">
                     <AvatarImage
-                        src={'/assets/knowhub-logo.png'}
-                        alt="KnowHub Logo"
+                        src={'/assets/logo-svg.svg'}
+                        alt="KnowHub"
                         className="object-contain p-1"
                     />
                     <AvatarFallback className="bg-transparent text-white font-bold text-xs">KH</AvatarFallback>
@@ -147,8 +147,8 @@ export function ClientSidebar() {
             <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 text-white">
               <Avatar className="w-full h-full bg-transparent">
                   <AvatarImage
-                      src={'/assets/knowhub-logo.png'}
-                      alt="KnowHub Logo"
+                      src={'/assets/logo-svg.svg'}
+                      alt="KnowHub"
                       className="object-contain p-1"
                   />
                   <AvatarFallback className="bg-transparent text-white font-bold text-xs">KH</AvatarFallback>

@@ -6,12 +6,8 @@ export class NotificationService {
 
     // lấy danh sách thông báo với phân trang
     public static async getNotifications (page : number, limit : number) : Promise<PageResponse<Notification>> {
-        try {
-            const response = await api.get('/notifications' , { params: { page, limit } });  
-            return response.data;              
-        } catch (error) {
-            throw error ;
-        }
+        const response = await api.get('/notifications' , { params: { page, limit } });  
+        return response.data;              
     }
 
     // lấy số lượng thông báo chưa đọc
