@@ -1,25 +1,24 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { InboxList } from './inbox-list';
 import { ChatWindow } from './chat-window';
 import { Inbox } from '../../models/inbox';
 import { Message } from '../../models/message';
 import { MessageService } from '../../services/message-service';
-import { ChatService } from '@/shared/sse/chat-service-ws';
 import { useUser } from '@/shared/hooks/use-user';
 import { UserService } from '@/features/user/services/user-service';
 import { User } from '@/features/user/models/user';
 import { useDebounce } from '@/shared/hooks/use-debounce';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { ChatService } from '@/features/message/services/chat-service-ws';
 
 const MESSAGES_LIMIT = 20;
 
 export function MessagesPage() {
   const { user } = useUser();
-  const chatService = ChatService.getInstance();
   const searchParams = useSearchParams();
   const toUserId = searchParams.get('to') ? parseInt(searchParams.get('to')!, 10) : null;
   
@@ -40,6 +39,75 @@ export function MessagesPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   
   const selectedConversation = inboxes.find((conv) => conv.id === selectedConversationId) || null;
+
+  // Refs to always access latest values inside WS callback (avoids stale closure)
+  const selectedConversationRef = useRef<Inbox | null>(null);
+  const selectedUserRef = useRef<User | null>(null);
+  const currentUserIdRef = useRef<number | undefined>(undefined);
+
+  useEffect(() => { selectedConversationRef.current = selectedConversation; }, [selectedConversation]);
+  useEffect(() => { selectedUserRef.current = selectedUser; }, [selectedUser]);
+  useEffect(() => { currentUserIdRef.current = user?.id; }, [user]);
+
+  // Real-time WebSocket subscription for incoming messages
+  useEffect(() => {
+    const chatService = ChatService.getInstance();
+    console.log('[MessagesPage] Registering subscribeToMessages. isConnected=', chatService.isConnected());
+
+    chatService.subscribeToMessages((message: Message) => {
+      console.log('%c[MessagesPage] ★ MESSAGE RECEIVED', 'color:orange;font-weight:bold', message);
+
+      // Ignore echo: server sends back to sender — we already added it optimistically
+      if (message.senderId === currentUserIdRef.current) {
+        console.log('[MessagesPage] Ignoring echo from self (senderId === currentUserId)');
+        return;
+      }
+
+      const currentConv = selectedConversationRef.current;
+      const currentUser = selectedUserRef.current;
+      const currentPartnerId = currentConv?.partnerId || currentUser?.id;
+      console.log(`[MessagesPage] MATCH CHECK → message.senderId=${message.senderId} === currentPartnerId=${currentPartnerId} → ${message.senderId === currentPartnerId}`);
+
+      // Add to active conversation if the message is from the current chat partner
+      if (currentPartnerId && message.senderId === currentPartnerId) {
+        setMessages(prev => {
+          const exists = prev.some(m => m.id === message.id);
+          if (exists) return prev;
+          return [message, ...prev];
+        });
+      }
+
+      // Update inbox: move the sender's conversation to top with latest message
+      setInboxes(prev => {
+        const idx = prev.findIndex(i => i.partnerId === message.senderId);
+        if (idx < 0) {
+          // Unknown sender — soft refresh but preserve current selection by merging
+          MessageService.getInboxes(1).then(res => {
+            setInboxes(curr => {
+              const incoming = res.content || [];
+              // Keep any conversations not in server response (e.g. newly created)
+              const incomingIds = new Set(incoming.map(i => i.id));
+              const preserved = curr.filter(i => !incomingIds.has(i.id));
+              return [...incoming, ...preserved];
+            });
+          }).catch(() => {});
+          return prev;
+        }
+        const updated = [...prev];
+        updated[idx] = {
+          ...updated[idx],
+          content: message.content,
+          updatedAt: message.createdAt || new Date().toISOString(),
+        };
+        const [top] = updated.splice(idx, 1);
+        return [top, ...updated];
+      });
+    });
+
+    return () => {
+      chatService.unSubcribe('/user/queue/messages');
+    };
+  }, []);
 
   // Fetch inboxes
   useEffect(() => {
@@ -82,31 +150,6 @@ export function MessagesPage() {
     
     fetchMessages();
   }, [selectedConversationId, selectedConversation]);
-
-  // Subscribe to real-time messages when page loads
-  useEffect(() => {
-    const handleNewMessage = (message: Message) => {
-      setMessages(prev => {
-        const messageExists = prev.some(m => m.id === message.id);
-        if (messageExists) return prev;
-        return [message, ...prev];
-      });
-      
-      // Update inbox with new message
-      setInboxes(prev => prev.map(inbox => 
-        inbox.id === selectedConversationId
-          ? { ...inbox, content: message.content, updatedAt: message.createdAt || new Date().toISOString() }
-          : inbox
-      ));
-    };
-    
-    // Subscribe to personal message queue
-    chatService.subscribeToMessages(handleNewMessage);
-    
-    return () => {
-      chatService.unSubcribe('/user/queue/messages');
-    };
-  }, [selectedConversationId, chatService]);
 
   // Auto-select conversation when navigating from profile
   useEffect(() => {
@@ -156,65 +199,64 @@ export function MessagesPage() {
   // Send message
   const handleSendMessage = useCallback(async (content: string) => {
     if (!content.trim() || !user?.id) return;
-    
-    // Determine receiver
+
     const receiverId = selectedConversation?.partnerId || selectedUser?.id;
     if (!receiverId) return;
-    
-    try {
-      setSendingMessage(true);
-      
-      // Send message via REST API
-      const message = await MessageService.sendMessage(receiverId, { content: content.trim() });
-      
-      // Add to messages list (avoid duplicates)
-      setMessages(prev => {
-        const messageExists = prev.some(m => m.id === message.id);
-        if (messageExists) return prev;
-        return [message, ...prev];
-      });
-      
-      // Update inbox list
-      setInboxes(prev => {
-        if (selectedConversationId && selectedConversation) {
-          // Update existing conversation with new message
-          const updated = prev.map(inbox =>
-            inbox.id === selectedConversationId
-              ? {
-                  ...inbox,
-                  content: message.content,
-                  updatedAt: message.createdAt || new Date().toISOString(),
-                }
-              : inbox
-          );
-          
-          // Move updated conversation to top
-          const updatedConversation = updated.find(i => i.id === selectedConversationId);
-          if (updatedConversation) {
-            const filtered = updated.filter(i => i.id !== selectedConversationId);
-            return [updatedConversation, ...filtered];
-          }
-          return updated;
-        }
-        return prev;
-      });
-      
-      // If this is a new conversation (no selectedConversationId), fetch inboxes
-      if (!selectedConversationId && selectedUser) {
+
+    const trimmed = content.trim();
+
+    // --- First message to a new user: use REST to create the conversation ---
+    if (!selectedConversationId && selectedUser) {
+      try {
+        setSendingMessage(true);
+        const message = await MessageService.sendMessage(receiverId, { content: trimmed });
+        setMessages(prev => {
+          if (prev.some(m => m.id === message.id)) return prev;
+          return [message, ...prev];
+        });
+        // Refresh inbox to get new conversation
         const inboxResponse = await MessageService.getInboxes(1, '');
-        const newInbox = inboxResponse.content?.find(inbox => inbox.senderId === selectedUser.id);
+        const newInbox = inboxResponse.content?.find(i => i.partnerId === selectedUser.id);
         if (newInbox) {
           setInboxes(inboxResponse.content || []);
           setSelectedConversationId(newInbox.id);
           setSelectedUser(null);
         }
+      } catch {
+        toast.error('Lỗi khi gửi tin nhắn');
+      } finally {
+        setSendingMessage(false);
       }
-      
-    } catch (error) {
-      toast.error('Lỗi khi gửi tin nhắn');
-    } finally {
-      setSendingMessage(false);
+      return;
     }
+
+    // --- Existing conversation: send via WebSocket so server pushes to receiver ---
+    const chatService = ChatService.getInstance();
+
+    // Optimistic UI update — add sender's message immediately without waiting for server
+    const optimisticMsg: Message = {
+      senderId: user.id,
+      senderName: user.fullName || user.username,
+      senderAvatarUrl: user.avatarUrl ?? undefined,
+      receiverId,
+      content: trimmed,
+      createdAt: new Date().toISOString(),
+    };
+    setMessages(prev => [optimisticMsg, ...prev]);
+
+    // Update inbox preview optimistically
+    setInboxes(prev => {
+      const idx = prev.findIndex(i => i.id === selectedConversationId);
+      if (idx < 0) return prev;
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], content: trimmed, updatedAt: optimisticMsg.createdAt! };
+      const [top] = updated.splice(idx, 1);
+      return [top, ...updated];
+    });
+
+    // Fire-and-forget over WebSocket — server saves + pushes to receiver
+    chatService.sendChatMessage(receiverId, trimmed);
+
   }, [selectedConversationId, selectedConversation, selectedUser, user]);
 
   if (loadingInboxes && inboxes.length === 0) {
