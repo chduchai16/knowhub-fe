@@ -1,5 +1,5 @@
 export interface ChatSocketRequest {
-    receiverId : number ;
-    content : string ;
-    mediaIds : number[] ;
+    receiverId: number;
+    content: string;
+    mediaIds: number[];
 }

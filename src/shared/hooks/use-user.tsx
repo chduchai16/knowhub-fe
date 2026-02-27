@@ -27,19 +27,10 @@ export function UserProvider({
   useEffect(() => {
     if (user && user.id) {
       const token = Cookies.get('token');
-      console.log('[UserProvider] user detected, token exists=', !!token, '| isConnected=', chatService.isConnected());
       if (token && !chatService.isConnected()) {
-        console.log('[UserProvider] Calling chatService.connect()...');
-        chatService.connect(token, () => {
-          console.log('[UserProvider] WebSocket connected successfully');
-        }).catch((error) => {
-          console.error('[UserProvider] Failed to connect WebSocket:', error);
-        });
-      } else if (chatService.isConnected()) {
-        console.log('[UserProvider] Already connected — skipping connect()');
+        chatService.connect(token).catch(() => {});
       }
     } else {
-      console.log('[UserProvider] No user — disconnecting if connected:', chatService.isConnected());
       // Ngắt kết nối khi user logout
       if (chatService.isConnected()) {
         chatService.disconnect();
@@ -48,7 +39,6 @@ export function UserProvider({
 
     return () => {
       // Cleanup khi component unmount
-      console.log('[UserProvider] cleanup — disconnecting if connected:', chatService.isConnected());
       if (chatService.isConnected()) {
         chatService.disconnect();
       }

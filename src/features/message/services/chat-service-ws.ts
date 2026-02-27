@@ -22,10 +22,8 @@ class ChatService extends WebSocketService {
 
   /** Connect to STOMP/WebSocket server using the provided JWT token */
   public connect(token: string, onConnected?: () => void): Promise<void> {
-    console.log(`[ChatService] connect() called. socketUrl=${socketUrl}, token=${token ? token.slice(0,20)+'...' : 'EMPTY'}`);
     return new Promise((resolve, reject) => {
       if (this.stompClient && (this.stompClient as any).active) {
-        console.log('[ChatService] Already connected — skipping.');
         resolve();
         return;
       }
@@ -34,40 +32,28 @@ class ChatService extends WebSocketService {
 
       this.stompClient = new StompJs.Client({
         // Create a NEW SockJS instance every time (fixes stale socket on reconnect)
-        webSocketFactory: () => {
-          console.log('[ChatService] webSocketFactory: creating new SockJS to', socketUrl);
-          return new SockJS(socketUrl) as any;
-        },
+        webSocketFactory: () => new SockJS(socketUrl) as any,
         reconnectDelay: 5000,
         heartbeatIncoming: 4000,
         heartbeatOutgoing: 4000,
         connectHeaders: {
           Authorization: `Bearer ${token}`,
         },
-        debug: (str) => console.log('[STOMP DEBUG]', str),
       });
 
-      this.stompClient.onConnect = (frame) => {
-        console.log('[ChatService] onConnect fired:', frame);
-        console.log(`[ChatService] Pending callbacks to re-subscribe: ${this.messageCallbacks.size}`);
-
+      this.stompClient.onConnect = (_frame) => {
         // Re-subscribe to every registered callback after (re)connect
         this.messageCallbacks.forEach((callback, destination) => {
-          console.log(`[ChatService] Re-subscribing to ${destination}`);
           if (this.stompClient && (this.stompClient as any).active) {
             const subscription = this.stompClient.subscribe(destination, (message: any) => {
-              console.log(`%c[ChatService] ★ RAW FRAME on ${destination}`, 'color:lime;font-weight:bold', message.body);
               try {
                 const parsed = JSON.parse(message.body);
-                console.log(`[ChatService] ★ PARSED:`, parsed);
                 callback(parsed);
               } catch {
-                console.warn(`[ChatService] Failed to parse body:`, message.body);
                 callback(message.body);
               }
             });
             this.subcriptions.set(destination, subscription);
-            console.log(`[ChatService] Subscribed to ${destination} ✓`);
           }
         });
 
@@ -78,21 +64,7 @@ class ChatService extends WebSocketService {
         }
       };
 
-      this.stompClient.onDisconnect = () => {
-        console.warn('[ChatService] onDisconnect fired');
-      };
-
-      // Intercept ALL incoming STOMP frames — helps detect if server sends to a different destination
-      this.stompClient.onUnhandledMessage = (message: any) => {
-        console.warn('%c[ChatService] ⚠ UNHANDLED MESSAGE (wrong destination?)', 'color:yellow;font-weight:bold', message.headers, message.body);
-      };
-
-      this.stompClient.onUnhandledFrame = (frame: any) => {
-        console.warn('[ChatService] ⚠ UNHANDLED FRAME:', frame);
-      };
-
       this.stompClient.onStompError = (frame: any) => {
-        console.error('[ChatService] STOMP error:', frame);
         if (!resolved) {
           resolved = true;
           reject(new Error(`STOMP error: ${frame.body}`));
@@ -100,51 +72,36 @@ class ChatService extends WebSocketService {
       };
 
       this.stompClient.onWebSocketError = (event: any) => {
-        console.error('[ChatService] WebSocket error:', event);
         if (!resolved) {
           resolved = true;
           reject(new Error('WebSocket connection error'));
         }
       };
 
-      this.stompClient.onWebSocketClose = (event: any) => {
-        console.warn('[ChatService] WebSocket closed:', event?.code, event?.reason);
-      };
-
-      console.log('[ChatService] Calling activate()...');
       this.stompClient.activate();
     });
   }
 
   /** Subscribe to an arbitrary STOMP destination */
   subcribe(destination: string, callback: SubscriptionCallback): void {
-    console.log(`[ChatService] subcribe() called for ${destination}. isConnected=${this.isConnected()}`);
     // Always register the callback so onConnect can re-subscribe after reconnect
     this.messageCallbacks.set(destination, callback);
 
     if (!this.stompClient || !(this.stompClient as any).active) {
-      // Not connected yet — onConnect will subscribe when ready
-      console.log(`[ChatService] Not connected yet — callback queued for ${destination}`);
       return;
     }
 
     // Already connected: subscribe immediately (unless already subscribed)
     if (!this.subcriptions.has(destination)) {
       const subscription = this.stompClient.subscribe(destination, (message: any) => {
-        console.log(`%c[ChatService] ★ RAW FRAME on ${destination}`, 'color:lime;font-weight:bold', message.body);
         try {
           const parsed = JSON.parse(message.body);
-          console.log(`[ChatService] ★ PARSED:`, parsed);
           callback(parsed);
         } catch {
-          console.warn(`[ChatService] Failed to parse body:`, message.body);
           callback(message.body);
         }
       });
       this.subcriptions.set(destination, subscription);
-      console.log(`[ChatService] Subscribed immediately to ${destination} ✓`);
-    } else {
-      console.log(`[ChatService] Already subscribed to ${destination} — skipping.`);
     }
   }
 
@@ -167,7 +124,6 @@ class ChatService extends WebSocketService {
           setTimeout(() => attemptSend(retries + 1), delay);
           return;
         }
-        console.error('[ChatService] STOMP not connected – failed to send message');
         return;
       }
       this.stompClient.publish({ destination, body: JSON.stringify(message) });
@@ -177,8 +133,8 @@ class ChatService extends WebSocketService {
   }
 
   /** Send a 1-to-1 chat message via WebSocket */
-  sendChatMessage(receiverId: number, content: string, maxRetries: number = 3): void {
-    this.sendMessage('/app/chat.send', { receiverId, content }, maxRetries);
+  sendChatMessage(receiverId: number, content: string, mediaIds: number[] = [], maxRetries: number = 3): void {
+    this.sendMessage('/app/chat.send', { receiverId, content, mediaIds }, maxRetries);
   }
 
   /**

@@ -33,4 +33,17 @@ export class MediaService {
         });
         return response.data;
     }
+
+
+    public static async updateTempImages(images: File[]): Promise<number[]> {
+        const formData = new FormData();
+        images.forEach(image => formData.append('files', image));
+        const response = await api.post('/medias/temp/batch', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+        return response.data;
+    }
 }
+

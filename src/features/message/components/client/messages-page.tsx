@@ -52,21 +52,16 @@ export function MessagesPage() {
   // Real-time WebSocket subscription for incoming messages
   useEffect(() => {
     const chatService = ChatService.getInstance();
-    console.log('[MessagesPage] Registering subscribeToMessages. isConnected=', chatService.isConnected());
 
     chatService.subscribeToMessages((message: Message) => {
-      console.log('%c[MessagesPage] ★ MESSAGE RECEIVED', 'color:orange;font-weight:bold', message);
-
       // Ignore echo: server sends back to sender — we already added it optimistically
       if (message.senderId === currentUserIdRef.current) {
-        console.log('[MessagesPage] Ignoring echo from self (senderId === currentUserId)');
         return;
       }
 
       const currentConv = selectedConversationRef.current;
       const currentUser = selectedUserRef.current;
       const currentPartnerId = currentConv?.partnerId || currentUser?.id;
-      console.log(`[MessagesPage] MATCH CHECK → message.senderId=${message.senderId} === currentPartnerId=${currentPartnerId} → ${message.senderId === currentPartnerId}`);
 
       // Add to active conversation if the message is from the current chat partner
       if (currentPartnerId && message.senderId === currentPartnerId) {
@@ -197,13 +192,18 @@ export function MessagesPage() {
   }, [selectedConversationId, selectedConversation, messagePage, hasMoreMessages, loadingMessages]);
 
   // Send message
-  const handleSendMessage = useCallback(async (content: string) => {
-    if (!content.trim() || !user?.id) return;
+  const handleSendMessage = useCallback(async (
+    content: string,
+    mediaIds?: number[],
+    localPreviews?: { url: string; type: 'image' | 'video' }[],
+  ) => {
+    const trimmed = content.trim();
+    const hasMedia = mediaIds && mediaIds.length > 0;
+    if (!trimmed && !hasMedia) return;
+    if (!user?.id) return;
 
     const receiverId = selectedConversation?.partnerId || selectedUser?.id;
     if (!receiverId) return;
-
-    const trimmed = content.trim();
 
     // --- First message to a new user: use REST to create the conversation ---
     if (!selectedConversationId && selectedUser) {
@@ -214,7 +214,6 @@ export function MessagesPage() {
           if (prev.some(m => m.id === message.id)) return prev;
           return [message, ...prev];
         });
-        // Refresh inbox to get new conversation
         const inboxResponse = await MessageService.getInboxes(1, '');
         const newInbox = inboxResponse.content?.find(i => i.partnerId === selectedUser.id);
         if (newInbox) {
@@ -230,10 +229,10 @@ export function MessagesPage() {
       return;
     }
 
-    // --- Existing conversation: send via WebSocket so server pushes to receiver ---
+    // --- Existing conversation: send via WebSocket ---
     const chatService = ChatService.getInstance();
 
-    // Optimistic UI update — add sender's message immediately without waiting for server
+    // Optimistic message shown instantly (upload already done in ChatWindow)
     const optimisticMsg: Message = {
       senderId: user.id,
       senderName: user.fullName || user.username,
@@ -241,21 +240,22 @@ export function MessagesPage() {
       receiverId,
       content: trimmed,
       createdAt: new Date().toISOString(),
+      ...(localPreviews && localPreviews.length > 0 ? { __localPreviews: localPreviews } as any : {}),
     };
     setMessages(prev => [optimisticMsg, ...prev]);
 
-    // Update inbox preview optimistically
+    const inboxPreview = trimmed || (hasMedia ? `[${mediaIds!.length} file đính kèm]` : '');
     setInboxes(prev => {
       const idx = prev.findIndex(i => i.id === selectedConversationId);
       if (idx < 0) return prev;
       const updated = [...prev];
-      updated[idx] = { ...updated[idx], content: trimmed, updatedAt: optimisticMsg.createdAt! };
+      updated[idx] = { ...updated[idx], content: inboxPreview, updatedAt: optimisticMsg.createdAt! };
       const [top] = updated.splice(idx, 1);
       return [top, ...updated];
     });
 
-    // Fire-and-forget over WebSocket — server saves + pushes to receiver
-    chatService.sendChatMessage(receiverId, trimmed);
+    // Upload already done in ChatWindow — just send via WebSocket
+    chatService.sendChatMessage(receiverId, trimmed, mediaIds ?? []);
 
   }, [selectedConversationId, selectedConversation, selectedUser, user]);
 
