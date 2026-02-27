@@ -4,18 +4,14 @@ import { Tag } from "../models/tag";
 
 export class TagService {
     static async getPagedTags(page: number = 0, limit: number = 10, keyword: string = ""): Promise<PageResponse<Tag>> {
-        try {
-            const response = await api.get("/tags", {
-                params: {
-                    page,
-                    limit,
-                    keyword
-                }
-            });
-            return response.data;
-        } catch (error) {
-            throw error;
-        }
+        const response = await api.get("/tags", {
+            params: {
+                page,
+                limit,
+                keyword
+            }
+        });
+        return response.data;
     }
 
     static async getAllTags(): Promise<Tag[]> {

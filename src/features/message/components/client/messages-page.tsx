@@ -1,72 +1,256 @@
-import { MessageSquare, Search } from 'lucide-react';
-import { Input } from '@/shared/components/ui/input';
-import { Button } from '@/shared/components/ui/button';
-import { Avatar, AvatarFallback } from '@/shared/components/ui/avatar';
+'use client';
 
-const conversations = [
-  { id: 1, name: 'Nguyễn Văn A', lastMessage: 'Chào bạn, bài viết rất hay!', time: '1 giờ', unread: true },
-  { id: 2, name: 'Trần Thị B', lastMessage: 'Ok bạn nhé.', time: '2 giờ', unread: false },
-  { id: 3, name: 'Lê Văn C', lastMessage: 'Bạn có đó không?', time: '1 ngày', unread: false },
-  { id: 4, name: 'Hoàng Văn D', lastMessage: 'Hẹn gặp bạn sau nhé!', time: '2 ngày', unread: true },
-  { id: 5, name: 'Phạm Thị E', lastMessage: 'Cảm ơn bạn đã hỗ trợ.', time: '3 ngày', unread: false },
-  { id: 6, name: 'Đỗ Văn F', lastMessage: 'Dự án đang tiến triển tốt.', time: '4 ngày', unread: false },
-  { id: 7, name: 'Bùi Thị G', lastMessage: 'Bạn đã xem tài liệu chưa?', time: '5 ngày', unread: true },
-  { id: 8, name: 'Vũ Văn H', lastMessage: 'Gửi mình link nhé.', time: '1 tuần', unread: false },
-  { id: 9, name: 'Ngô Thị I', lastMessage: 'Chúc mừng sinh nhật!', time: '1 tuần', unread: false },
-  { id: 10, name: 'Lý Văn K', lastMessage: 'Mai cafe không?', time: '2 tuần', unread: false },
-];
+import { useEffect, useState, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { InboxList } from './inbox-list';
+import { ChatWindow } from './chat-window';
+import { Inbox } from '../../models/inbox';
+import { Message } from '../../models/message';
+import { MessageService } from '../../services/message-service';
+import { ChatService } from '@/shared/sse/chat-service-ws';
+import { useUser } from '@/shared/hooks/use-user';
+import { UserService } from '@/features/user/services/user-service';
+import { User } from '@/features/user/models/user';
+import { useDebounce } from '@/shared/hooks/use-debounce';
+import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
+
+const MESSAGES_LIMIT = 20;
 
 export function MessagesPage() {
+  const { user } = useUser();
+  const chatService = ChatService.getInstance();
+  const searchParams = useSearchParams();
+  const toUserId = searchParams.get('to') ? parseInt(searchParams.get('to')!, 10) : null;
+  
+  // Inbox states
+  const [inboxes, setInboxes] = useState<Inbox[]>([]);
+  const [selectedConversationId, setSelectedConversationId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebounce(searchTerm, 300);
+  const [inboxPage, setInboxPage] = useState(1);
+  const [loadingInboxes, setLoadingInboxes] = useState(false);
+  
+  // Messages states
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [messagePage, setMessagePage] = useState(1);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  
+  const selectedConversation = inboxes.find((conv) => conv.id === selectedConversationId) || null;
+
+  // Fetch inboxes
+  useEffect(() => {
+    const fetchInboxes = async () => {
+      try {
+        setLoadingInboxes(true);
+        const response = await MessageService.getInboxes(inboxPage, debouncedSearch);
+        if (inboxPage === 1) {
+          setInboxes(response.content || []);
+        } else {
+          setInboxes(prev => [...prev, ...(response.content || [])]);
+        }
+      } catch (error) {
+        toast.error('Lỗi khi tải danh sách tin nhắn');
+      } finally {
+        setLoadingInboxes(false);
+      }
+    };
+    
+    fetchInboxes();
+  }, [inboxPage, debouncedSearch]);
+
+  // Fetch messages khi chọn conversation
+  useEffect(() => {
+    if (!selectedConversationId || !selectedConversation) return;
+    
+    const fetchMessages = async () => {
+      try {
+        setLoadingMessages(true);
+        const response = await MessageService.getConversation(selectedConversation.partnerId, 1, MESSAGES_LIMIT);
+        setMessages(response.content || []);
+        setMessagePage(1);
+        setHasMoreMessages((response.info?.totalPages ?? 1) > 1);
+      } catch (error) {
+        toast.error('Lỗi khi tải tin nhắn');
+      } finally {
+        setLoadingMessages(false);
+      }
+    };
+    
+    fetchMessages();
+  }, [selectedConversationId, selectedConversation]);
+
+  // Subscribe to real-time messages when page loads
+  useEffect(() => {
+    const handleNewMessage = (message: Message) => {
+      setMessages(prev => {
+        const messageExists = prev.some(m => m.id === message.id);
+        if (messageExists) return prev;
+        return [message, ...prev];
+      });
+      
+      // Update inbox with new message
+      setInboxes(prev => prev.map(inbox => 
+        inbox.id === selectedConversationId
+          ? { ...inbox, content: message.content, updatedAt: message.createdAt || new Date().toISOString() }
+          : inbox
+      ));
+    };
+    
+    // Subscribe to personal message queue
+    chatService.subscribeToMessages(handleNewMessage);
+    
+    return () => {
+      chatService.unSubcribe('/user/queue/messages');
+    };
+  }, [selectedConversationId, chatService]);
+
+  // Auto-select conversation when navigating from profile
+  useEffect(() => {
+    if (toUserId && inboxes.length > 0) {
+      // Try to find existing inbox with this user
+      const existingInbox = inboxes.find(inbox => inbox.senderId === toUserId);
+      if (existingInbox) {
+        // Select the conversation
+        setSelectedConversationId(existingInbox.id);
+        setSelectedUser(null);
+      } else {
+        // Fetch user info to display their chat
+        const fetchUser = async () => {
+          try {
+            const userData = await UserService.getUserById(toUserId.toString());
+            setSelectedUser(userData);
+          } catch (error) {
+            console.error('Failed to fetch user info:', error);
+          }
+        };
+        fetchUser();
+      }
+    }
+  }, [toUserId, inboxes]);
+
+  // Load more messages
+  const loadMoreMessages = useCallback(async () => {
+    if (!selectedConversationId || !selectedConversation || !hasMoreMessages || loadingMessages) return;
+    
+    try {
+      const nextPage = messagePage + 1;
+      const response = await MessageService.getConversation(selectedConversation.partnerId, nextPage, MESSAGES_LIMIT);
+      setMessages(prev => {
+        const newMessages = response.content || [];
+        // Filter out messages that already exist
+        const existingIds = new Set(prev.map(m => m.id));
+        const filteredNew = newMessages.filter(m => !existingIds.has(m.id));
+        return [...prev, ...filteredNew];
+      });
+      setMessagePage(nextPage);
+      setHasMoreMessages((response.info?.totalPages ?? 1) > nextPage);
+    } catch (error) {
+      toast.error('Lỗi khi tải thêm tin nhắn');
+    }
+  }, [selectedConversationId, selectedConversation, messagePage, hasMoreMessages, loadingMessages]);
+
+  // Send message
+  const handleSendMessage = useCallback(async (content: string) => {
+    if (!content.trim() || !user?.id) return;
+    
+    // Determine receiver
+    const receiverId = selectedConversation?.partnerId || selectedUser?.id;
+    if (!receiverId) return;
+    
+    try {
+      setSendingMessage(true);
+      
+      // Send message via REST API
+      const message = await MessageService.sendMessage(receiverId, { content: content.trim() });
+      
+      // Add to messages list (avoid duplicates)
+      setMessages(prev => {
+        const messageExists = prev.some(m => m.id === message.id);
+        if (messageExists) return prev;
+        return [message, ...prev];
+      });
+      
+      // Update inbox list
+      setInboxes(prev => {
+        if (selectedConversationId && selectedConversation) {
+          // Update existing conversation with new message
+          const updated = prev.map(inbox =>
+            inbox.id === selectedConversationId
+              ? {
+                  ...inbox,
+                  content: message.content,
+                  updatedAt: message.createdAt || new Date().toISOString(),
+                }
+              : inbox
+          );
+          
+          // Move updated conversation to top
+          const updatedConversation = updated.find(i => i.id === selectedConversationId);
+          if (updatedConversation) {
+            const filtered = updated.filter(i => i.id !== selectedConversationId);
+            return [updatedConversation, ...filtered];
+          }
+          return updated;
+        }
+        return prev;
+      });
+      
+      // If this is a new conversation (no selectedConversationId), fetch inboxes
+      if (!selectedConversationId && selectedUser) {
+        const inboxResponse = await MessageService.getInboxes(1, '');
+        const newInbox = inboxResponse.content?.find(inbox => inbox.senderId === selectedUser.id);
+        if (newInbox) {
+          setInboxes(inboxResponse.content || []);
+          setSelectedConversationId(newInbox.id);
+          setSelectedUser(null);
+        }
+      }
+      
+    } catch (error) {
+      toast.error('Lỗi khi gửi tin nhắn');
+    } finally {
+      setSendingMessage(false);
+    }
+  }, [selectedConversationId, selectedConversation, selectedUser, user]);
+
+  if (loadingInboxes && inboxes.length === 0) {
+    return (
+      <div className="h-[calc(100vh-50px)] border rounded-xl bg-white overflow-hidden flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="h-[calc(100vh-50px)] border rounded-xl bg-white overflow-hidden flex">
-      {/* Danh sách hội thoại */}
-      <div className="w-84 border-r flex flex-col">
-        <div className="p-4 border-b">
-          <h1 className="text-xl font-bold mb-4">Tin nhắn</h1>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input placeholder="Tìm kiếm tin nhắn..." className="pl-9 bg-gray-50 border-none" />
-          </div>
+      <div className="w-96 flex-shrink-0 border-r flex flex-col">
+        <div className="p-4 border-b flex-shrink-0">
+          <h2 className="text-xl font-bold">Tin nhắn</h2>
         </div>
-        <div className="flex-1 overflow-y-auto">
-          {conversations.map((conv) => (
-            <div
-              key={conv.id}
-              className="p-4 flex gap-3 hover:bg-gray-50 cursor-pointer transition-colors relative"
-            >
-              <Avatar>
-                <AvatarFallback>{conv.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-baseline mb-1">
-                  <p className="font-semibold truncate">{conv.name}</p>
-                  <span className="text-xs text-gray-400">{conv.time}</span>
-                </div>
-                <p className={`text-sm truncate ${conv.unread ? 'font-bold text-gray-900' : 'text-gray-500'}`}>
-                  {conv.lastMessage}
-                </p>
-              </div>
-              {conv.unread && (
-                <div className="absolute right-4 bottom-4 w-2 h-2 bg-blue-500 rounded-full" />
-              )}
-            </div>
-          ))}
-        </div>
+        <InboxList
+          conversations={inboxes}
+          selectedConversationId={selectedConversationId}
+          onSelectConversation={(conversationId) => {
+            setSelectedConversationId(conversationId);
+            setSelectedUser(null);
+          }}
+          onSearchChange={setSearchTerm}
+        />
       </div>
-
-      {/* Nội dung tin nhắn */}
-      <div className="flex-1 flex flex-col items-center justify-center bg-gray-50">
-        <div className="text-center space-y-4">
-          <div className="w-20 h-20 rounded-full border-2 border-black flex items-center justify-center mx-auto">
-            <MessageSquare className="w-10 h-10" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold">Tin nhắn của bạn</h2>
-            <p className="text-gray-500">Gửi ảnh và tin nhắn riêng tư cho bạn bè hoặc nhóm.</p>
-          </div>
-          <Button className="bg-blue-500 hover:bg-blue-600">Gửi tin nhắn</Button>
-        </div>
-      </div>
+      <ChatWindow 
+        selectedConversation={selectedConversation}
+        selectedUser={selectedUser}
+        messages={messages}
+        onSendMessage={handleSendMessage}
+        onLoadMoreMessages={loadMoreMessages}
+        isLoadingMessages={loadingMessages}
+        isSendingMessage={sendingMessage}
+        hasMoreMessages={hasMoreMessages}
+      />
     </div>
   );
 }

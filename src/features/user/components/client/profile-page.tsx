@@ -1,10 +1,11 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useUser } from '@/shared/hooks/use-user';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar';
 import { Button } from '@/shared/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
-import { Grid3x3, Bookmark, UserSquare, Camera, Settings, MoreHorizontal, Flag } from 'lucide-react';
+import { Grid3x3, Bookmark, UserSquare, Camera, Settings, MoreHorizontal, Flag, MessageCircle } from 'lucide-react';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Post } from '@/features/post/models/post';
 import { PostService } from '@/features/post/services/post-service';
@@ -24,6 +25,7 @@ interface ProfilePageProps {
 }
 
 export function ProfilePage({ username }: ProfilePageProps) {
+  const router = useRouter();
   const { user: currentUser } = useUser(); // User đang đăng nhập
   const [profileUser, setProfileUser] = useState<User | null>(null); // User đang xem profile
   const [posts, setPosts] = useState<Post[]>([]);
@@ -173,6 +175,16 @@ export function ProfilePage({ username }: ProfilePageProps) {
               </Button>
             ) : (
               <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="px-4"
+                  onClick={() => router.push(`/messages?to=${profileUser?.id}`)}
+                >
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Nhắn tin
+                </Button>
+                
                 {profileUser?.isFollowing ? (
                   <Button 
                     variant="outline"
@@ -363,7 +375,7 @@ export function ProfilePage({ username }: ProfilePageProps) {
           isOpen={isReportDialogOpen}
           onOpenChange={setIsReportDialogOpen}
           targetId={user.id}
-          targetType="USER"
+          targetType="user"
         />
       )}
     </div>

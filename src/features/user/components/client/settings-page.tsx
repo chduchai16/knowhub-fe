@@ -9,10 +9,11 @@ import { useUser } from '@/shared/hooks/use-user';
 
 export function SettingsPage() {
   const router = useRouter();
-  const { user } = useUser();
+  const { user, setUser } = useUser();
   const isAdmin = user?.roleName?.toUpperCase() === 'ADMIN';
 
   const handleLogout = () => {
+    setUser(null);
     Cookies.remove('token');
     router.push('/login');
     router.refresh();
