@@ -43,11 +43,6 @@ const navigationItems = [
     icon : Search
   },
   {
-    title: 'Khám phá',
-    url: '/explore',
-    icon: Compass,
-  },
-  {
     title: 'Thông báo',
     url: '/notifications',
     icon: Bell,
