@@ -25,6 +25,8 @@ KnowHub là ứng dụng frontend cho nền tảng mạng xã hội chia sẻ ki
 **Xác thực**
 - Đăng ký, đăng nhập
 - Xác thực bằng JWT lưu trong cookie
+- Đăng nhập / đăng ký qua Google OAuth2
+- Đăng nhập / đăng ký qua Facebook OAuth2
 
 **Bảng tin (Feed)**
 - Xem bài viết từ cộng đồng
@@ -74,6 +76,38 @@ Tạo file `.env.local` ở thư mục gốc:
 NEXT_PUBLIC_API_URL=http://localhost:8080/api
 NEXT_PUBLIC_WS_URL=http://localhost:8080/ws/chat
 ```
+
+> OAuth redirect mặc định trỏ tới `http://localhost:8080/oauth2/authorization/{provider}`.  
+> Nếu backend chạy ở địa chỉ khác, chỉ cần đổi `NEXT_PUBLIC_API_URL` — URL OAuth sẽ tự cập nhật theo.
+
+---
+
+## Cấu hình OAuth (Google & Facebook)
+
+OAuth được xử lý hoàn toàn ở phía **backend** (Spring Boot). Frontend chỉ redirect người dùng tới backend rồi nhận token về.
+
+**Luồng hoạt động:**
+
+```
+Người dùng click "Google" / "Facebook"
+  → Redirect tới backend: /oauth2/authorization/{provider}
+  → Backend xác thực với Google / Facebook
+  → Backend redirect về: {FRONTEND_URL}/oauth-success?token=<jwt>
+  → Frontend (/oauth-success) lưu token vào cookie
+  → Redirect về trang chính
+```
+
+**Các URL OAuth:**
+
+| Provider | URL |
+|----------|-----|
+| Google | `{BACKEND_URL}/oauth2/authorization/google` |
+| Facebook | `{BACKEND_URL}/oauth2/authorization/facebook` |
+
+**Cấu hình cần thiết phía backend:**
+
+- Google: Đăng ký OAuth Client tại [Google Cloud Console](https://console.cloud.google.com/), thêm `http://localhost:8080/login/oauth2/code/google` vào Authorized redirect URIs.
+- Facebook: Đăng ký app tại [Meta for Developers](https://developers.facebook.com/), thêm `http://localhost:8080/login/oauth2/code/facebook` vào Valid OAuth Redirect URIs.
 
 **3. Chạy development server**
 
