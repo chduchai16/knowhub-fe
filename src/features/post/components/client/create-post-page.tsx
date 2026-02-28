@@ -132,6 +132,7 @@ export function CreatePostPage() {
       }
       setImage(previewUrl);
       setImageFile(file);
+      setMediaType('image');
     } catch (error) {
       toast.error('Lỗi khi tải ảnh lên');
     } finally {
