@@ -7,6 +7,7 @@ import { User } from '@/features/user/models/user';
 import { ClientSidebar } from '@/components/layout/client/client-sidebar';
 import { redirect } from 'next/navigation';
 import { serverBackendUrl } from '@/shared/constants/server-environment';
+import { deleteCookieAndRedirect } from '@/shared/actions/auth-actions';
 
 export default async function ClientLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
@@ -33,10 +34,10 @@ export default async function ClientLayout({ children }: { children: ReactNode }
       const response = await res.json();
       user = response.data;
     } else {
-      redirect('/login');
+      await deleteCookieAndRedirect('token', '/login');
     }
   } catch (error) {
-    redirect('/login');
+    await deleteCookieAndRedirect('token', '/login');
   }
 
   return (

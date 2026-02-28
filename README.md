@@ -1,174 +1,177 @@
-# KnowHub - Frontend
+﻿# KnowHub - Frontend
 
-KnowHub là một nền tảng kết nối cộng đồng và chia sẻ kiến thức.
+KnowHub là ứng dụng frontend cho nền tảng mạng xã hội chia sẻ kiến thức. Được xây dựng bằng Next.js, kết nối tới backend thông qua REST API và WebSocket.
 
-> [!NOTE]  
-> Dự án hiện đang trong quá trình phát triển (In Progress).
+---
 
 ## Công nghệ sử dụng
 
-- **Framework:** [Next.js](https://nextjs.org/)
-- **Styling:** [Tailwind CSS](https://tailwindcss.com/)
-- **UI Components:** [shadcn/ui](https://ui.shadcn.com/)
-- **Icons:** [Lucide React](https://lucide.dev/)
-- **State Management:** React Context API
-- **Authentication:** JWT (Cookie based)
+- Next.js 16 (App Router, standalone output)
+- React 19
+- TypeScript
+- Tailwind CSS
+- shadcn/ui (Radix UI)
+- Axios
+- React Hook Form + Zod
+- STOMP over SockJS (WebSocket - cho tính năng chat)
+- SSE - Server-Sent Events (cho thông báo real-time)
+- Sonner (toast notifications)
+- JWT (cookie-based authentication)
 
-## Tính năng hiện tại
+---
 
-- **Landing Page:** Thiết kế hiện đại theo phong cách Notion.
-- **Authentication:** Đăng nhập và đăng ký người dùng với thông báo thành công.
-- **Client Layout:** Giao diện sidebar phong cách Instagram, hỗ trợ responsive hoàn chỉnh.
-- **Real-time Notifications:** 
-    - Nhận thông báo tức thời thông qua **Server-Sent Events (SSE)**.
-    - Hiển thị Toast thông báo (Sonner) kèm nút "Xem" nhanh.
-    - Tự động cập nhật số lượng thông báo chưa đọc.
-    - Điều hướng thông minh dựa trên loại thông báo (Follow -> Profile, Reply -> Post).
-- **Admin Panel:** Quản lý người dùng, bài viết, vai trò, quyền hạn.
-- **Tìm kiếm:** Sheet tìm kiếm người dùng real-time.
-- **Bảng tin (Feed):** Hiển thị các bài viết từ cộng đồng.
-- **Trang cá nhân:** Quản lý thông tin và bài viết cá nhân.
-- **Responsive:** Hỗ trợ tốt trên Desktop, Tablet và Mobile.
+## Tính năng chính
 
-## Phát triển dự án (Local)
+**Xác thực**
+- Đăng ký, đăng nhập
+- Xác thực bằng JWT lưu trong cookie
 
-1. **Cài đặt dependencies:**
-   ```bash
-   npm install
-   ```
+**Bảng tin (Feed)**
+- Xem bài viết từ cộng đồng
+- Tạo bài viết kèm ảnh hoặc video
+- Crop ảnh trước khi đăng
+- Bình luận, tương tác bài viết
 
-2. **Cài đặt biến môi trường:**
-   Tạo file `.env.local` và cấu hình các biến cần thiết (nếu có).
+**Trang cá nhân**
+- Xem và chỉnh sửa thông tin cá nhân
+- Xem bài viết của người dùng
+- Follow / Unfollow
 
-3. **Chạy môi trường development:**
-   ```bash
-   npm run dev
-   ```
-   Ứng dụng sẽ chạy tại: [http://localhost:3000](http://localhost:3000)
+**Khám phá**
+- Tìm kiếm người dùng, bài viết theo tag
+
+**Nhắn tin**
+- Chat real-time qua WebSocket (STOMP)
+
+**Thông báo**
+- Nhận thông báo real-time qua SSE
+- Điều hướng thông minh theo loại thông báo
+
+**Cài đặt**
+- Đổi mật khẩu, quyền riêng tư, báo cáo
+
+**Admin Panel**
+- Quản lý người dùng, bài viết, bình luận, tag
+- Quản lý vai trò và quyền hạn
+- Dashboard thống kê
+- Xem nhật ký hoạt động và xử lý báo cáo
+
+---
+
+## Cài đặt và chạy local
+
+**1. Cài dependencies**
+
+```bash
+npm install
+```
+
+**2. Tạo file môi trường**
+
+Tạo file `.env.local` ở thư mục gốc:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8080/api
+NEXT_PUBLIC_WS_URL=http://localhost:8080/ws/chat
+```
+
+**3. Chạy development server**
+
+```bash
+npm run dev
+```
+
+Ứng dụng chạy tại `http://localhost:3000`.
+
+---
+
+## Build production
+
+```bash
+npm run build
+npm run start
+```
+
+---
+
+## Triển khai bằng Docker
+
+Dự án hỗ trợ inject biến môi trường lúc runtime thông qua `entrypoint.sh`, không cần build lại image khi đổi URL backend.
+
+**Build image**
+
+```bash
+docker build -t knowhub-fe .
+```
+
+**Chạy container**
+
+```bash
+docker run -p 3000:3000 \
+  -e NEXT_PUBLIC_API_URL=http://your-backend:8080/api \
+  -e NEXT_PUBLIC_WS_URL=http://your-backend:8080/ws/chat \
+  knowhub-fe
+```
+
+---
 
 ## Cấu trúc thư mục
 
-Dự án sử dụng **Feature-Based Architecture** để tổ chức code một cách module hóa và dễ bảo trì.
+Dự án theo kiến trúc Feature-Based, mỗi tính năng là một module độc lập.
 
 ```
 src/
-├── app/                          # Next.js App Router
-│   ├── (auth)/                  # Auth route group
-│   │   ├── login/
-│   │   └── register/
-│   ├── (client)/                # Client route group
-│   │   ├── feed/
-│   │   ├── profile/
-│   │   ├── post/
-│   │   ├── explore/
-│   │   ├── notifications/
-│   │   ├── messages/
-│   │   └── settings/
-│   ├── (admin)/                 # Admin route group
-│   │   └── admin/
-│   │       ├── dashboard/
-│   │       ├── users/
-│   │       ├── roles/
-│   │       ├── permissions/
-│   │       ├── posts/
-│   │       ├── tags/
-│   │       ├── reports/
-│   │       ├── comments/
-│   │       └── activity/
-│   ├── layout.tsx               # Root layout
-│   ├── page.tsx                 # Landing page
-│   └── globals.css
+├── app/                        # Next.js App Router
+│   ├── (auth)/                 # Đăng nhập, đăng ký
+│   ├── (client)/               # Feed, profile, post, messages, settings, explore
+│   └── (admin)/                # Toàn bộ trang admin
 │
-├── features/                     # Feature modules (Feature-Based)
-│   ├── auth/                    # Authentication feature
-│   │   ├── components/
-│   │   ├── schemas/
-│   │   └── services/
-│   ├── user/                    # User management feature
-│   │   ├── components/
-│   │   ├── models/
-│   │   ├── schemas/
-│   │   └── services/
-│   ├── post/                    # Post feature
-│   │   ├── components/
-│   │   ├── models/
-│   │   └── services/
-│   ├── comment/                 # Comment feature
-│   ├── notification/            # Notification feature
-│   ├── dashboard/               # Admin dashboard feature
-│   ├── role/                    # Role management feature
-│   ├── permission/              # Permission management feature
-│   ├── report/                  # Report management feature
-│   ├── tag/                     # Tag management feature
-│   └── activity/                # Activity tracking feature
+├── features/                   # Modules theo nghiệp vụ
+│   ├── auth/
+│   ├── post/
+│   ├── comment/
+│   ├── user/
+│   ├── message/
+│   ├── notification/
+│   ├── tag/
+│   ├── role/
+│   ├── permission/
+│   ├── report/
+│   ├── activity/
+│   └── dashboard/
 │
-├── components/                   # Layout & common components
-│   ├── layout/
-│   │   ├── admin/              # Admin layout components
-│   │   │   ├── admin-header.tsx
-│   │   │   ├── admin-sidebar.tsx
-│   │   │   └── admin-footer.tsx
-│   │   └── client/             # Client layout components
-│   │       ├── client-header.tsx
-│   │       └── client-sidebar.tsx
-│   └── common/                  # Shared components
-│       ├── admin/
-│       └── client/
+├── components/                 # Layout components (header, sidebar, footer)
+│   ├── layout/admin/
+│   └── layout/client/
 │
-└── shared/                       # Shared resources
-    ├── components/
-    │   ├── ui/                  # shadcn/ui components
-    │   └── common/              # Common reusable components
-    ├── hooks/                   # Custom React hooks
-    │   ├── use-user.tsx
-    │   ├── use-role.ts
-    │   ├── use-mobile.ts
-    │   └── use-debounce.ts
-    ├── services/                # API services
-    │   ├── media.service.ts
-    │   └── user-auth-service.ts
-    ├── configs/                 # Configuration files
-    │   └── axios.config.ts
-    ├── constants/               # Constants & environment
-    │   └── environment.ts
-    ├── models/                  # Shared TypeScript interfaces
-    │   ├── page-response.ts
-    │   ├── jwt-payload.ts
-    │   └── user-action.ts
-    ├── sse/                     # Real-time Server-Sent Events logic
-    │   └── notification-sse.ts
-    └── utils/                   # Utility functions
-        ├── cn.ts
-        ├── crop-image.ts
-        ├── time.ts
-        └── index.ts
+└── shared/                     # Dùng chung toàn dự án
+    ├── components/ui/          # shadcn/ui components
+    ├── components/common/      # Components tái sử dụng
+    ├── hooks/                  # Custom hooks
+    ├── services/               # API services dùng chung
+    ├── configs/                # Cấu hình axios
+    ├── constants/              # Biến môi trường
+    ├── models/                 # TypeScript interfaces dùng chung
+    ├── sse/                    # Logic SSE cho thông báo
+    └── utils/                  # Hàm tiện ích
 ```
 
-## Ghi chú kỹ thuật
+Mỗi feature thường bao gồm:
 
-- **Real-time Engine:** Sử dụng **SSE (Server-Sent Events)** để kết nối liên tục với Server khi user đã đăng nhập, giúp nhận dữ liệu thông báo mà không cần pooling.
-
-### Feature-Based Architecture
-
-Mỗi feature là một module độc lập, không có cấu trúc cố định mà tùy thuộc vào yêu cầu nghiệp vụ:
-
-**Cấu trúc thường gặp:**
-- **components/**: React components của feature (có thể phân chia thêm admin/, client/, shared/ nếu cần)
-- **models/**: TypeScript interfaces/types (nếu có)
-- **schemas/**: Zod validation schemas (nếu có)
-- **services/**: API calls và business logic
-- **hooks/**: Custom hooks riêng của feature (nếu có)
-
-**Ví dụ:**
-- `features/auth/`: components, schemas, services
-- `features/user/`: components (admin, client, shared), models, schemas, services
-- `features/post/`: components, models, services
-
-**Ưu điểm:**
-- Dễ bảo trì và scale
-- Code tách biệt theo nghiệp vụ
-- Tái sử dụng code hiệu quả
-- Team có thể làm việc song song trên các features khác nhau
+- `components/` - React components (có thể chia thêm `admin/`, `client/` nếu cần)
+- `models/` - TypeScript interfaces
+- `schemas/` - Zod validation schemas
+- `services/` - Gọi API
+- `hooks/` - Custom hooks riêng của feature (nếu có)
 
 ---
+
+## Ghi chú
+
+- Biến môi trường `NEXT_PUBLIC_API_URL` và `NEXT_PUBLIC_WS_URL` được resolve lúc runtime khi chạy Docker thông qua cơ chế thay thế placeholder trong `entrypoint.sh`. Nếu chạy local thì lấy từ `.env.local`.
+- Authentication dựa trên JWT lưu trong cookie, middleware Next.js kiểm tra token trước khi cho phép truy cập các route được bảo vệ.
+- Real-time thông báo dùng SSE (Server-Sent Events), chat dùng STOMP over SockJS.
+
+---
+
 © 2026 KnowHub Team.
